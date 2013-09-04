@@ -1,0 +1,247 @@
+# Logfile created on 2013-08-31 14:47:58 +0800 by logger.rb/36483
+the request begin at 2013-08-31 14:48:13
+the uniq id is 1377931693841 c9c7a79514e12cbab498cd3c0c82886c
+visit: /:version/questions/create_question(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","directional_user_ids":"","content":"HELLO","token_id":"52217bcce974f92ea800576f","keywords":"ACCESS","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:15
+
+
+
+the request begin at 2013-08-31 14:48:15
+the uniq id is 1377931695356 e99953ead19a835d1c901deae09fe581
+visit: /:version/questions/recommended_experts(.:format)
+method:POST
+params:{"json":"{"question_id":"522191ade974f936a2000049","expert_ids":["52204666e974f90e23000018","52217aeae974f92ea80051c8"],"average_relevancies":[0.0,0.0],"type":"push","empty_expert":0}","version":"v1","format":"json"}
+["52204666e974f90e23000018", "52217aeae974f92ea80051c8"]
+522191ade974f936a2000049
+[0.0, 0.0]
+push
+false
+the response over at 2013-08-31 14:48:15
+
+
+
+the request begin at 2013-08-31 14:48:15
+the uniq id is 1377931695469 ddcec062137e3115c4e4fc5ea434cf7e
+visit: /:version/questions/recommended_experts(.:format)
+method:POST
+params:{"json":"{"question_id":"522191ade974f936a2000049","expert_ids":[],"average_relevancies":[],"type":"show","empty_expert":0}","version":"v1","format":"json"}
+[]
+522191ade974f936a2000049
+[]
+show
+false
+the response over at 2013-08-31 14:48:15
+
+
+
+the request begin at 2013-08-31 14:48:15
+the uniq id is 1377931695546 c2091d8c77a0264494a9a8149c79edd5
+visit: /:version/dialogs/detail(.:format)
+method:GET
+params:{"dialog_id":"522191ade974f936a2000051","version":"v1","format":"json"}
+the response over at 2013-08-31 14:48:15
+
+
+
+the request begin at 2013-08-31 14:48:16
+the uniq id is 1377931696045 a67182603560ac71fc5a87fca7353b23
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","type":"recommend","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:16
+
+
+
+the request begin at 2013-08-31 14:48:16
+the uniq id is 1377931696127 930fde2a8a965bd26d657ebf700e7fbb
+visit: /:version/users/get_question_number_answer_number(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:16
+
+
+
+the request begin at 2013-08-31 14:48:19
+the uniq id is 1377931699611 d55f629036fa567310283805b1015328
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","type":"recommend","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:19
+
+
+
+the request begin at 2013-08-31 14:48:19
+the uniq id is 1377931699701 452a26372a91ad2a2aad8dae5fdf350f
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","type":"faxian","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:19
+
+
+
+the request begin at 2013-08-31 14:48:21
+the uniq id is 1377931701992 d53530dc0faeb78adfb0a46a9897f085
+visit: /:version/notification/accept_chat(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","notification_id":"522191b4e974f936a20000d3","question_id":"522191ade974f936a2000049","token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:22
+
+
+
+the request begin at 2013-08-31 14:48:22
+the uniq id is 1377931702182 52f5adb319a168a11f3a18430706ad02
+visit: /:version/users/get_question_number_answer_number(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:22
+
+
+
+the request begin at 2013-08-31 14:48:22
+the uniq id is 1377931702356 4875f95cbbcdc957234810bd1d46995e
+visit: /:version/dialogs/detail(.:format)
+method:GET
+params:{"dialog_id":"522191ade974f936a2000051","token_id":"52217c01e974f92ea8005927","version":"v1.1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:22
+
+
+
+the request begin at 2013-08-31 14:48:27
+the uniq id is 1377931707791 ef2eb1834d901c4aa6921b1a13736208
+visit: /:version/dialogs/send_message(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","content":"你好","token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:27
+
+
+
+the request begin at 2013-08-31 14:48:38
+the uniq id is 1377931718138 5e8da49cfa8e04e0ff2ba34478bb2124
+visit: /:version/dialogs/send_message(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","content":"你好","token_id":"52217bcce974f92ea800576f","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:38
+
+
+
+the request begin at 2013-08-31 14:48:46
+the uniq id is 1377931726062 0934be7bb62db8bbeada1523414a41f1
+visit: /:version/dialogs/close(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:46
+
+
+
+the request begin at 2013-08-31 14:48:46
+the uniq id is 1377931726392 81631939219cfc40948810f6ba8ea7ed
+visit: /:version/dialogs/detail(.:format)
+method:GET
+params:{"dialog_id":"522191ade974f936a2000051","token_id":"52217c01e974f92ea8005927","version":"v1.1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:46
+
+
+
+the request begin at 2013-08-31 14:48:50
+the uniq id is 1377931730413 38958e09f37d908a40596f8b14f45d6a
+visit: /:version/dialogs/evaluate(.:format)
+method:POST
+params:{"star_number":"3","dialog_id":"522191ade974f936a2000051","content":"","token_id":"52217c01e974f92ea8005927","is_share":"true","is_innominate":"false","pennant_id":"","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:50
+
+
+
+the request begin at 2013-08-31 14:48:50
+the uniq id is 1377931730683 a1be587d6bca6c99583cc5a4f1e1f995
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","type":"faxian","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:50
+
+
+
+the request begin at 2013-08-31 14:48:50
+the uniq id is 1377931730725 9b768fb4e10981380430f059d5c3700a
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","type":"recommend","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:50
+
+
+
+the request begin at 2013-08-31 14:48:50
+the uniq id is 1377931730767 196179e16426710cfba7bf4dcb1a3485
+visit: /:version/users/get_question_number_answer_number(.:format)
+method:GET
+params:{"token_id":"52217c01e974f92ea8005927","version":"v1","format":"json"}
+current user id is:52217aeae974f92ea80051c8
+the response over at 2013-08-31 14:48:50
+
+
+
+the request begin at 2013-08-31 14:48:52
+the uniq id is 1377931732766 654b15eee43acc42d83a20e116296af6
+visit: /:version/dialogs/close(.:format)
+method:POST
+params:{"dialog_id":"522191ade974f936a2000051","token_id":"52217bcce974f92ea800576f","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:52
+
+
+
+the request begin at 2013-08-31 14:48:53
+the uniq id is 1377931733108 455389814e7278456cde014efb067dfa
+visit: /:version/dialogs/detail(.:format)
+method:GET
+params:{"dialog_id":"522191ade974f936a2000051","version":"v1","format":"json"}
+the response over at 2013-08-31 14:48:53
+
+
+
+the request begin at 2013-08-31 14:48:57
+the uniq id is 1377931737226 93661d5f778760575b672c43ac8dd5eb
+visit: /:version/dialogs/evaluate(.:format)
+method:POST
+params:{"star_number":"3","dialog_id":"522191ade974f936a2000051","content":"","token_id":"52217bcce974f92ea800576f","is_share":"true","is_innominate":"false","pennant_id":"","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:57
+
+
+
+the request begin at 2013-08-31 14:48:57
+the uniq id is 1377931737418 2fa0b411a383de8aba59ae47f4882663
+visit: /:version/questions/show_questions(.:format)
+method:GET
+params:{"token_id":"52217bcce974f92ea800576f","type":"recommend","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:57
+
+
+
+the request begin at 2013-08-31 14:48:57
+the uniq id is 1377931737480 88c0feb5531fdff833db3f50e2b1b6a2
+visit: /:version/users/get_question_number_answer_number(.:format)
+method:GET
+params:{"token_id":"52217bcce974f92ea800576f","version":"v1","format":"json"}
+current user id is:52217b94e974f92ea800563d
+the response over at 2013-08-31 14:48:57
+
+
+
