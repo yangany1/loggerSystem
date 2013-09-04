@@ -3,26 +3,28 @@ package com.zhidaoba.loggersystem.relevancy;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import com.google.gson.Gson;
+import com.mongodb.DBObject;
 import com.zhidaoba.loggersystem.common.ConfigHandler;
 import com.zhidaoba.loggersystem.common.Constants;
+import com.zhidaoba.loggersystem.common.DatabaseHandler;
 
 public class RelevancyThread {
-	// changelist是分析日志数据得到的将要写到日志数据库的对象列表
-	private ArrayBlockingQueue<RelevancyObject> changeList;
+	 
 	// 存储用户和标签的相关度
 	private Map<String, Map<String, Float>> expertTagRelevancy;
-	private Gson gson = new Gson();
-	// TODO how to update everyday
-	private Map<String, Map<String, Integer>> userAskedTimesToday = new HashMap<String, Map<String, Integer>>();
-	private Map<String, Map<String, Integer>> userAnsweredTimesToday = new HashMap<String, Map<String, Integer>>();
-
-	private Calendar today = Calendar.getInstance();
+//	private Gson gson = new Gson();
+//	// TODO how to update everyday
+//	private Map<String, Map<String, Integer>> userAskedTimesToday = new HashMap<String, Map<String, Integer>>();
+//	private Map<String, Map<String, Integer>> userAnsweredTimesToday = new HashMap<String, Map<String, Integer>>();
+//
+//	private Calendar today = Calendar.getInstance();
 
 	// String(dialog_id):ArrayList(0:ASKER, 1:ANSWERER, 2: PUSH_TIME,
 	// 3:ACCEPT_CHAT_TIME, 4:ASK_WORD_LENGTH,
@@ -31,12 +33,12 @@ public class RelevancyThread {
 	// 10:ASK_PAUSE_TIME, 11:ANSWER_PAUSE_TIME, 12:ASK_STAR_NUM,
 	// 13:ANSWER_STAR_NUM, 14:ASK_IS_COMMENT,15:ANSWER_IS_COMMENT,
 	// 16:ASK_SHARE, 17:ANSWER_SHARE
-	private Map<String, ArrayList<Object>> dialogInfos = new HashMap<String, ArrayList<Object>>();
+//	private Map<String, ArrayList<Object>> dialogInfos = new HashMap<String, ArrayList<Object>>();
 
 	public void init() {
-		Map<String, Map<String, Float>> expertTagRelevancy = new HashMap<String, Map<String, Float>>();
+		expertTagRelevancy = new HashMap<String, Map<String, Float>>();
 		DatabaseHandler.getRelevancyFromMysql(expertTagRelevancy);
-		ConfigHandler.getLogger().info("expertTag size=" + expertTagRelevancy);
+		ConfigHandler.getLogger().info("expertTag size=" + expertTagRelevancy.size());
 	}
 
 	public void run() {
@@ -64,72 +66,24 @@ public class RelevancyThread {
 		Timer timer = new Timer();
 		timer.schedule(task, 0, Constants.LOG_READ_FREQUENCY);
 	}
-
-	private void analysisFromMongoDB() {
-		MongoClient client = null;
-		DBCursor cursor = null;
-		try {
-			System.out.println("step1");
-			client = new MongoClient(ConfigHandler.getMongodbServer(),
-					ConfigHandler.getMongodbPort());
-			DB db = client.getDB(ConfigHandler.getMongodbName());
-			// boolean auth = db.authenticate(myUserName, myPassword);
-			DBCollection coll = db
-					.getCollection(Constants.MONGODB_USER_LOGS_COLLECTION);
-			// DBObject myDoc = coll.findOne();
-			DBObject query = new BasicDBObject();
-			query.put(
-					Constants.ISHANDLED_FIELD_IN_MONGODB_USER_LOGS_COLLECTION,
-					false);
-
-			cursor = coll.find(query);
-			while (cursor.hasNext()) {
-
-				DBObject obj = cursor.next();
-				System.out.println("obj=" + obj);
-				// if (!(Boolean)
-				// obj.get(ISHANDLED_FIELD_IN_MONGODB_USER_LOGS_COLLECTION)) {
-				LogInfo content = new LogInfo(
-						(String) obj
-								.get(Constants.USER_ID_FIELD_IN_MONGODB_USER_LOGS_COLLECTION),
-						(Long) obj
-								.get(Constants.LOGTIME_FIELD_IN_MONGODB_USER_LOGS_COLLECTION),
-						(String) obj
-								.get(Constants.ACTION_FIELD_IN_MONGODB_USER_LOGS_COLLECTION),
-						(String) obj
-								.get(Constants.CONTENT_FIELD_IN_MONGODB_USER_LOGS_COLLECTION));
-				ConfigHandler.getLogger().info("logInfo object=" + content);
-				analysis(content);
-				ConfigHandler.getLogger().info("analysis end");
-				DBObject updatedValue = new BasicDBObject();
-				updatedValue
-						.put(Constants.ISHANDLED_FIELD_IN_MONGODB_USER_LOGS_COLLECTION,
-								true);
-				DBObject updateSetValue = new BasicDBObject("$set",
-						updatedValue);
-				coll.update(obj, updateSetValue);
-				ConfigHandler.getLogger().info("update to handled ");
-			}
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			System.out.println("thread " + Thread.currentThread().getName()
-					+ " is releaseing ");
-			try {
-				if (cursor != null) {
-					cursor.close();
-				}
-				if (client != null) {
-					client.close();
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+	
+	private boolean analysisFromMongoDB(){
+		List<DBObject> logList=DatabaseHandler.getRelevancyObjectsFromMongoDB();
+		for(DBObject obj:logList){
+			RelevancyObject r = new RelevancyObject(
+					(String) obj.get(Constants.LOG_USERID_FIELD),
+					(Long) obj.get(Constants.LOG_LOGTIME_FIELD),
+					(String) obj.get(Constants.LOG_ACTION_FIELD),
+					(String) obj.get(Constants.LOG_CONTENT_FIELD));
+//			analysis(r);
+			DatabaseHandler.updateLogState(obj);
 		}
+		
+		return true;
 	}
 
+	
+/*
 	private int getRatioByProfile(String userid) {
 		ConfigHandler.getLogger().info("getRatioByProfile");
 		DBObject obj = DatabaseHandler
@@ -680,23 +634,14 @@ public class RelevancyThread {
 		if (isShare) {
 			return 0.06f;
 		}
-		/*
-		 * if (type == 12) { return 0.05f; } else if (type == 11) { return
-		 * 0.04f; } else if (type == 10) { return 0.03f; } else if (type == 02)
-		 * { return 0.02f; } else if (type == 01) { return 0.01f; } else if
-		 * (type == 0) { return 0; }
-		 */
+		
+	
 		return 0;
 	}
 
+
 	private float getLevelDistanceScore(String dialogid) {
-		/*
-		 * if (diff == 0) { return 0; } else if (diff <= 5) { return 0.005f; }
-		 * else if (diff <= 10) { return 0.015f; } else if (diff <= 15) { return
-		 * 0.025f; } else if (diff <= 20) { return 0.035f; } else if (diff <=
-		 * 25) { return 0.04f; } else if (diff <= 30) { return 0.045f; } else if
-		 * (diff <= 35) { return 0.05f; }
-		 */
+	
 		return 0;
 	}
 
@@ -930,4 +875,6 @@ public class RelevancyThread {
 			}
 		}
 	}
+	
+	*/
 }

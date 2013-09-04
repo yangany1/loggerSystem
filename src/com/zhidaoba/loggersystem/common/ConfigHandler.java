@@ -23,7 +23,7 @@ public class ConfigHandler {
 	/**
 	 * 默认的参数配置
 	 */
-	private final static String DEFAULT_MYSQL_PATH = "jdbc:mysql://localhost/tag?useUnicode=true&characterEncoding=utf8";
+	private final static String DEFAULT_MYSQL_PATH = "jdbc:mysql://zhidao.ba/tag?useUnicode=true&characterEncoding=utf8";
 	private final static String DEFAULT_MYSQL_USERNAME = "root";
 	private final static String DEFAULT_MYSQL_PASSWORD = "";
 
@@ -113,8 +113,8 @@ public class ConfigHandler {
 			REV_LOG_LAST_READ_FILE_NAME = prop.getProperty(
 					REV_LOG_LAST_READ_FILE_NAME_STRING,
 					DEFAULT_REV_LOG_LAST_READ_FILE_NAME);
-			if (REV_LOG_LAST_READ_FILE_NAME.equals("None")) {
-				REV_LOG_LAST_READ_FILE_NAME = "";
+			if (MYSQL_PASSWORD.equals("None")) {
+				MYSQL_PASSWORD = "";
 			}
 			REV_LOG_LAST_READ_LINE_NUMBER = Integer.valueOf(prop.getProperty(
 					REV_LOG_LAST_READ_LINE_NUMBER_STRING,

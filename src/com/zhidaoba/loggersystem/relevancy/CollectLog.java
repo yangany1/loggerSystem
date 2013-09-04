@@ -9,7 +9,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import com.google.gson.Gson;
 import com.zhidaoba.loggersystem.common.ConfigHandler;
 import com.zhidaoba.loggersystem.common.Constants;
 import com.zhidaoba.loggersystem.common.DatabaseHandler;
@@ -27,7 +26,7 @@ public class CollectLog {
 	private static SimpleDateFormat sDateFormat = new SimpleDateFormat(
 			TIME_FORMAT);
 
-	// changelist是分析日志数据得到的将要写到日志数据库的对象列表
+	// change list是分析日志数据得到的将要写到日志数据库的对象列表
 	private static ArrayBlockingQueue<RelevancyObject> changeList;
 
 	/**
