@@ -20,21 +20,9 @@ public class RelevancyThread {
 	// 存储用户和标签的相关度
 	private Map<String, Map<String, Float>> expertTagRelevancy;
 	private Gson gson = new Gson();
-	// // TODO how to update everyday
-	// private Map<String, Map<String, Integer>> userAskedTimesToday = new
-	// HashMap<String, Map<String, Integer>>();
-	// private Map<String, Map<String, Integer>> userAnsweredTimesToday = new
-	// HashMap<String, Map<String, Integer>>();
-	//
+
 	// private Calendar today = Calendar.getInstance();
 
-	// String(dialog_id):ArrayList(0:ASKER, 1:ANSWERER, 2: PUSH_TIME,
-	// 3:ACCEPT_CHAT_TIME, 4:ASK_WORD_LENGTH,
-	// 5:ANSWER_WORD_LENGTH, 6:ASK_Timestamp, 7:ANSWER_Timestamp), 8:
-	// LAST_UPDATE_TIME, 9:FIRST_ANSWER_TIME
-	// 10:ASK_PAUSE_TIME, 11:ANSWER_PAUSE_TIME, 12:ASK_STAR_NUM,
-	// 13:ANSWER_STAR_NUM, 14:ASK_IS_COMMENT,15:ANSWER_IS_COMMENT,
-	// 16:ASK_SHARE, 17:ANSWER_SHARE
 	private Map<String, ArrayList<Object>> dialogInfos = new HashMap<String, ArrayList<Object>>();
 
 	public void init() {
@@ -82,13 +70,30 @@ public class RelevancyThread {
 					(Long) obj.get(Constants.LOG_LOGTIME_FIELD),
 					(String) obj.get(Constants.LOG_ACTION_FIELD),
 					(String) obj.get(Constants.LOG_CONTENT_FIELD));
-			// analysis(r);
+			try {
+				analysis(r);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			DatabaseHandler.updateLogState(obj);
 		}
 
 		return true;
 	}
 
+	/**
+	 * Create_Question需要做的事情： 1、新建一个dialog的map 2、记录提问者的id 3、初始化提问者的平均响应时间
+	 * 4、初始化回答者的平均响应时间 5、记录问题推送的时间 6、初始化提问者的对话平均长度 7、初始化回答者的对话平均长度
+	 * 
+	 * Accept_Chat需要做的事情： 1、记录回答者的id 2、记录回答者接受会话的时间
+	 * 
+	 * Send_Message需要做的事情： a 对提问者： 1、更新提问者的平均回答长度 2、更新提问者的平均响应时间 b 对回答者：
+	 * 1、记录回答者第一次回答的时间 2、更新回答者的平均响应时间 3、更新回答者的平均回答长度
+	 * 
+	 * @param log
+	 * @throws Exception
+	 */
 	private void analysis(RelevancyObject log) throws Exception {
 		try {
 			Calendar tmp = Calendar.getInstance();
@@ -98,22 +103,12 @@ public class RelevancyThread {
 			switch (log.actionType()) {
 			case EVALUATE:
 				ConfigHandler.getLogger().info("EVALUATE");
-				evaluationEvent(content, userid);
+				evaluationEvent(log, content);
 				break;
 			case CREATE_QUESTION:
 				ConfigHandler.getLogger().info("CREATE_QUESTION");
 				createQuestionEvent(log, content);
 				break;
-			// case NOTIFICATION_LIST:
-			// ConfigHandler.getLogger().info("NOTIFICATION_LIST");
-			// if (content.getType().equals(
-			// Constants.CHAT_INVITATION_NOTIFICATION)) {
-			// this.dialogInfos.get(content.getDialogID()).set(2,
-			// log.getTime());
-			// this.dialogInfos.get(content.getDialogID()).set(8,
-			// log.getTime());
-			// }
-			// break;
 			case ACCEPT_CHAT:
 				ConfigHandler.getLogger().info("ACCEPT_CHAT");
 				acceptChatEvent(log, content);
@@ -121,60 +116,59 @@ public class RelevancyThread {
 			case SEND_MESSAGE:
 				ConfigHandler.getLogger().info("SEND_MESSAGE");
 				sendMessageEvent(log, content);
-
 				break;
-			case LOGOUT:
-				// ASKER
-				if (log.getUserId().equals(
-						this.dialogInfos.get(content.getDialogID()).get(0))) {
-					this.dialogInfos.get(content.getDialogID()).set(
-							10,
-							(Integer) this.dialogInfos.get(
-									content.getDialogID()).get(10) + 1);
-				}
-				// ANSWERER
-				else if (log.getUserId().equals(
-						this.dialogInfos.get(content.getDialogID()).get(1))) {
-					this.dialogInfos.get(content.getDialogID()).set(
-							11,
-							(Integer) this.dialogInfos.get(
-									content.getDialogID()).get(11) + 1);
-				}
-				break;
-			case CONTINUE:
-				this.dialogInfos.get(content.getDialogID()).set(8,
-						log.getTime());
-				break;
-
-			case UPDATE_TAG:
-				this.updateKnowledge(UserAction.UPDATE_TAG, log.getUserId(),
-						10, content);
-				break;
-			case ADD_SCHOOL_INFO:
-				this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COLLEGE,
-						log.getUserId(), 20, content);// school
-				this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_MAJOR,
-						log.getUserId(), 20, content);// major
-				break;
-			case UPDATE_COMPANY_INFO:
-				this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COMPANY,
-						log.getUserId(), 20, content);// company
-				this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_TITLE,
-						log.getUserId(), 20, content);// position
-				break;
-			case AGREE:
-				this.updateKnowledge(UserAction.AGREE, log.getUserId(),
-						ratio * 0.5f, content);
-				break;
-			case DETAIL:
-				this.updateKnowledge(UserAction.DETAIL, log.getUserId(),
-						ratio * 0.2f, content);
-				break;
-			case COMMENT:
-				this.updateKnowledge(UserAction.COMMENT, log.getUserId(), 0.8f,
-						content);
-			case REMOVE_SCHOOL_INFO:
-				break;
+			// case LOGOUT:
+			// // ASKER
+			// if (log.getUserId().equals(
+			// this.dialogInfos.get(content.getDialogID()).get(0))) {
+			// this.dialogInfos.get(content.getDialogID()).set(
+			// 10,
+			// (Integer) this.dialogInfos.get(
+			// content.getDialogID()).get(10) + 1);
+			// }
+			// // ANSWERER
+			// else if (log.getUserId().equals(
+			// this.dialogInfos.get(content.getDialogID()).get(1))) {
+			// this.dialogInfos.get(content.getDialogID()).set(
+			// 11,
+			// (Integer) this.dialogInfos.get(
+			// content.getDialogID()).get(11) + 1);
+			// }
+			// break;
+			// case CONTINUE:
+			// this.dialogInfos.get(content.getDialogID()).set(8,
+			// log.getTime());
+			// break;
+			//
+			// case UPDATE_TAG:
+			// this.updateKnowledge(UserAction.UPDATE_TAG, log.getUserId(),
+			// 10, content);
+			// break;
+			// case ADD_SCHOOL_INFO:
+			// this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COLLEGE,
+			// log.getUserId(), 20, content);// school
+			// this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_MAJOR,
+			// log.getUserId(), 20, content);// major
+			// break;
+			// case UPDATE_COMPANY_INFO:
+			// this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COMPANY,
+			// log.getUserId(), 20, content);// company
+			// this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_TITLE,
+			// log.getUserId(), 20, content);// position
+			// break;
+			// case AGREE:
+			// this.updateKnowledge(UserAction.AGREE, log.getUserId(),
+			// ratio * 0.5f, content);
+			// break;
+			// case DETAIL:
+			// this.updateKnowledge(UserAction.DETAIL, log.getUserId(),
+			// ratio * 0.2f, content);
+			// break;
+			// case COMMENT:
+			// this.updateKnowledge(UserAction.COMMENT, log.getUserId(), 0.8f,
+			// content);
+			// case REMOVE_SCHOOL_INFO:
+			// break;
 			default:
 				break;
 			}
@@ -185,51 +179,63 @@ public class RelevancyThread {
 		}
 	}
 
-	public boolean evaluationEvent(ContentParser content, String userid) {
-		// ASKER
+	/**
+	 * 评价的日志分析
+	 * 
+	 * @param log
+	 * @param content
+	 * @return
+	 */
+	public boolean evaluationEvent(RelevancyObject log, ContentParser content) {
+		// 对于提问者
 		if (log.getUserId().equals(
-				this.dialogInfos.get(content.getDialogID()).get(0))) {
-			this.dialogInfos.get(content.getDialogID()).set(12,
-					content.getStarNumber());
-			this.dialogInfos.get(content.getDialogID()).set(14,
+				this.dialogInfos.get(content.getDialogID()).get(
+						Constants.DIALOG_ASKER))) {
+			// 记录提问者的打分
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ASK_STAR_NUM, content.getStarNumber());
+			// 记录提问者是否评价
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ASK_IS_COMMENT,
 					content.getContent().isEmpty());
-			this.dialogInfos.get(content.getDialogID()).set(16,
-					content.getIsShare());
+			// 记录提问者是否分享
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ASK_SHARE, content.getIsShare());
+			// 标记提问者已经评价
 			this.dialogInfos.get(content.getDialogID()).set(18, true);
+
 		}
-		// ANSWERER
+		// 对于回答者
 		else if (log.getUserId().equals(
-				this.dialogInfos.get(content.getDialogID()).get(1))) {
-			this.dialogInfos.get(content.getDialogID()).set(13,
-					content.getStarNumber());
-			this.dialogInfos.get(content.getDialogID()).set(15,
+				this.dialogInfos.get(content.getDialogID()).get(
+						Constants.DIALOG_ANSWER))) {
+			// 记录回答者的打分
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ANSWER_STAR_NUM, content.getStarNumber());
+			// 记录回答者是否评论
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ANSWER_IS_COMMENT,
 					content.getContent().isEmpty());
-			this.dialogInfos.get(content.getDialogID()).set(17,
-					content.getIsShare());
-			this.dialogInfos.get(content.getDialogID()).set(19, true);
+			// 记录回答者是否分享
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ANSWER_SHARE, content.getIsShare());
+			// 记录回答者是否评价
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ANSWER_EVALUATE, true);
 		}
-		if ((Boolean) this.dialogInfos.get(content.getDialogID()).get(18)
-				&& (Boolean) this.dialogInfos.get(content.getDialogID())
-						.get(19)) {
-			this.updateKnowledge(
-					UserAction.CREATE_QUESTION,
-					(String) this.dialogInfos.get(content.getDialogID()).get(0),
-					ratio * this.getContributeTotalScore(content.getDialogID())
-							* 0.5f, content);
-			this.updateKnowledge(
-					UserAction.ACCEPT_CHAT,
-					(String) this.dialogInfos.get(content.getDialogID()).get(1),
-					ratio
-							* this.getContributeQuantityFromComment(content
-									.getDialogID()) * 2, content);
-			this.saveContribution(
-					(String) this.dialogInfos.get(content.getDialogID()).get(1),
-					content.getDialogID());
-			this.saveContribution(
-					(String) this.dialogInfos.get(content.getDialogID()).get(0),
-					content.getDialogID());
+		// 如果双方都评价过
+		if ((Boolean) this.dialogInfos.get(content.getDialogID()).get(
+				Constants.DIALOG_ASK_EVALUATE)
+				&& (Boolean) this.dialogInfos.get(content.getDialogID()).get(
+						Constants.DIALOG_ANSWER_EVALUATE)) {
+			// 更新提问者的消耗值
+			this.updateConsumation(log.getUserId(), content.getDialogID());
+			// 更新回答者的贡献值
+			this.updateContribution(log.getUserId(), content.getDialogID());
+			// 删除这条对话
 			this.dialogInfos.remove(content.getDialogID());
 		}
+		return true;
 	}
 
 	/**
@@ -245,43 +251,72 @@ public class RelevancyThread {
 		if (this.dialogInfos.containsKey(content.getDialogID())) {
 			ConfigHandler.getLogger().warning(
 					"DIALOG_ID DUPLICATED:" + content.getDialogID());
+			
 			return true;
 		} else {
 			addDialogToList(content.getDialogID());
-			// 记录提问者的id
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ASKER, log.getUserId());
-			// 记录提问者的间隔时间（平均响应时间）
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ASK_PAUSE_TIME, 0);
-			// 记录回答者者的间隔时间（平均响应时间）
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ANSWER_PAUSE_TIME, 0);
-			// 记录问题推送的时间
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_PUSH_TIME, log.getTime());
-			// 记录提问者的平均长度
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ASK_WORD_LENGTH, 0);
-			// 记录回答者的平均长度
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ANSWER_WORD_LENGTH, 0);
-
-			// 记录提问者的响应时间
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ASK_TIMESTAMP, 0);
-			// 记录回答者的响应时间
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_ANSWER_TIMESTAMP, 0);
-			// 记录回答者第一次回答的时间
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_FIRST_ANSWER_TIME, 0);
-
-			// 记录回答者第一次回答的时间
-			this.dialogInfos.get(content.getDialogID()).set(
-					Constants.DIALOG_LAST_UPDATE_TIME, log.getTime());
-
+			initCreateQuesion(log, content);
 		}
+		return true;
+	}
+
+	private boolean initCreateQuesion(RelevancyObject log, ContentParser content) {
+		// 记录提问者的id
+		this.dialogInfos.get(content.getDialogID()).set(Constants.DIALOG_ASKER,
+				log.getUserId());
+		// 初始化pushtime
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_PUSH_TIME, log.getTime());
+		// 初始化accept chat time
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ACCEPT_CHAT_TIME, log.getTime());
+		// 记录提问者的平均长度
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_WORD_LENGTH, 0);
+		// 记录回答者的平均长度
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_WORD_LENGTH, 0);
+		// 记录提问者的响应时间
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_TIMESTAMP, 0);
+		// 记录回答者的响应时间
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_TIMESTAMP, 0);
+		// 记录回答者第一次回答的时间
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_FIRST_ANSWER_TIME, log.getTime());
+		// 初始化提问者和回答者的暂停次数
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_PAUSE_TIME, 0);
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_PAUSE_TIME, 0);
+		// 初始提问者者评价的星级
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_STAR_NUM, 0);
+		// 初始回答者者评价的星级
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_STAR_NUM, 0);
+		// 初始提问者者是否评价
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_IS_COMMENT, false);
+		// 初始回答者是否评价
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_IS_COMMENT, false);
+		// 初始提问者者是否分享
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_SHARE, false);
+		// 初始回答者是否分享
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_SHARE, false);
+		// 设置提问者的上次活动时间
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_UPDATE_TIME, log.getTime());
+		// 初始化提问者是否评价
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ASK_EVALUATE, false);
+		// 初始化回答者是否评价
+		this.dialogInfos.get(content.getDialogID()).set(
+				Constants.DIALOG_ANSWER_EVALUATE, false);
 		return true;
 	}
 
@@ -311,6 +346,12 @@ public class RelevancyThread {
 					Constants.DIALOG_ANSWER, log.getUserId());
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ACCEPT_CHAT_TIME, log.getTime());
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ANSWER_UPDATE_TIME, log.getTime());
+			// 第一次回答的时间
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_FIRST_ANSWER_TIME, log.getTime());
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -361,12 +402,7 @@ public class RelevancyThread {
 					Constants.DIALOG_ANSWER_UPDATE_TIME)) / 1000;
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ANSWER_UPDATE_TIME, log.getTime());
-			// 第一次回答的时间
-			if ((Integer) (this.dialogInfos.get(content.getDialogID())
-					.get(Constants.DIALOG_FIRST_ANSWER_TIME)) == 0) {
-				this.dialogInfos.get(content.getDialogID()).set(
-						Constants.DIALOG_FIRST_ANSWER_TIME, log.getTime());
-			}
+
 			// 设置回答内容的长度
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ANSWER_WORD_LENGTH,
@@ -383,411 +419,416 @@ public class RelevancyThread {
 		return true;
 	}
 
-	/*
-	 * private int getRatioByProfile(String userid) {
-	 * ConfigHandler.getLogger().info("getRatioByProfile"); DBObject obj =
-	 * DatabaseHandler .getItemFromMongoDB(
-	 * Constants.MONGODB_USER_INFO_COLLECTION,
-	 * Constants.USER_ID_FIELD_IN_MONGODB_USER_INFO_COLLECTION, userid); try {
-	 * int level = (Integer) obj
-	 * .get(Constants.PROFILE_FIELD_IN_MONGODB_USER_INFO_COLLECTION); if (level
-	 * <= 15) { return 1; } else if (level <= 20) { return 2; } else if (level
-	 * <= 25) { return 3; } else if (level <= 30) { return 4; } else if (level
-	 * <= 35) { return 5; } return 1; } catch (Exception e) {
-	 * ConfigHandler.getLogger().warning( "User " + userid +
-	 * " Not Exists in user collection!"); return 1; }
-	 * 
-	 * }
-	 * 
-	 * private void updateKnowledge(UserAction action, String uid, float
-	 * incrementKnowledge, ContentParser content) {
-	 * ConfigHandler.getLogger().info("update knowledge"); float beta = 0;
-	 * String[] tags; float weight = 0; switch (action) { case CREATE_QUESTION:
-	 * DBObject obj1 = DatabaseHandler .getItemFromMongoDB(
-	 * Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * content.getDialogID()); tags = ((String) obj1
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); weight = incrementKnowledge / tags.length;
-	 * beta = 0.1f; break; case ACCEPT_CHAT: DBObject obj2 = DatabaseHandler
-	 * .getItemFromMongoDB( Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * content.getDialogID()); tags = ((String) obj2
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); weight = incrementKnowledge / tags.length;
-	 * beta = 0.08f; break; case UPDATE_TAG: tags =
-	 * content.getTags().split(Constants.TAG_SPLITER); weight =
-	 * incrementKnowledge; beta = 0.2f; break; case PERSONAL_INFO_ADD_COLLEGE:
-	 * beta = 0.1f; tags = DatabaseHandler.getPersonalInfoTagsFromMysql(action,
-	 * content.getCollegeName()); weight = incrementKnowledge / tags.length;
-	 * break; case PERSONAL_INFO_ADD_MAJOR: beta = 0.1f; tags =
-	 * DatabaseHandler.getPersonalInfoTagsFromMysql(action,
-	 * content.getMajorName()); weight = incrementKnowledge / tags.length;
-	 * break; case PERSONAL_INFO_ADD_COMPANY: beta = 0.1f; tags =
-	 * DatabaseHandler.getPersonalInfoTagsFromMysql(action,
-	 * content.getCompanyName()); weight = incrementKnowledge / tags.length;
-	 * break; case PERSONAL_INFO_ADD_TITLE: beta = 0.1f; tags =
-	 * DatabaseHandler.getPersonalInfoTagsFromMysql(action,
-	 * content.getPositionTitle()); weight = incrementKnowledge / tags.length;
-	 * break; case AGREE: DBObject obj3 = DatabaseHandler .getItemFromMongoDB(
-	 * Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION, (String)
-	 * DatabaseHandler .getItemFromMongoDB( Constants.MONGODB_DIALOG_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_COLLECTION,
-	 * content.getQuestionID())
-	 * .get(Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_COLLECTION)); tags =
-	 * ((String) obj3
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); weight = incrementKnowledge / tags.length;
-	 * beta = 0.03f; break; case DETAIL: DBObject obj4 = DatabaseHandler
-	 * .getItemFromMongoDB( Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * content.getDialogID()); tags = ((String) obj4
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); weight = incrementKnowledge / tags.length;
-	 * beta = 0.02f; break; case COMMENT: DBObject obj5 = DatabaseHandler
-	 * .getItemFromMongoDB( Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * content.getDialogID()); tags = ((String) obj5
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); weight = incrementKnowledge / tags.length;
-	 * beta = 0.05f; break; default: tags = new String[0]; break; }
-	 * 
-	 * ArrayList<String> toAddTags = new ArrayList<String>(); ArrayList<Float>
-	 * toAddRelevancies = new ArrayList<Float>(); for (String tag : tags) {
-	 * ArrayList<String> relaWords = DatabaseHandler
-	 * .getRelationshipsFromMysql(tag); relaWords.add(0, tag); float s = weight;
-	 * for (String word : relaWords) { try { float alpha =
-	 * this.expertTagRelevancy.get(uid).get(word); float added = (1 - alpha) *
-	 * beta; if (alpha < s * beta) { added = alpha; } float curr = alpha +
-	 * added; this.expertTagRelevancy.get(uid).put(word, curr); if
-	 * (toAddTags.contains(word)) {
-	 * toAddRelevancies.set(toAddTags.indexOf(word), curr); } else {
-	 * toAddRelevancies.add(curr); toAddTags.add(word); } s = s - added; if (s
-	 * <= 0) { break; } } catch (Exception e) { continue; } } }
-	 * ConfigHandler.getLogger().info("Update relevancy uid=" + uid);
-	 * DatabaseHandler.updateRelevancyToMysql(uid, (String[]) toAddTags
-	 * .toArray(), ArrayUtils.toPrimitive( (Float[]) toAddRelevancies.toArray(),
-	 * 0.0f));
-	 * 
-	 * // this.recommendList.add(new RecommendPostContent(uid, // (String[])
-	 * toAddTags.toArray(), ArrayUtils.toPrimitive((Float[]) //
-	 * toAddRelevancies.toArray(), 0.0f))); }
-	 * 
-	 * 
-	 * 
-	 * // String(dialog_id):ArrayList(0:ASKER, 1:ANSWERER, 2: PUSH_TIME, //
-	 * 3:ACCEPT_CHAT_TIME, 4:ASK_WORD_LENGTH, // 5:ANSWER_WORD_LENGTH,
-	 * 6:ASK_Timestamp, 7:ANSWER_Timestamp), 8: // LAST_UPDATE_TIME,
-	 * 9:FIRST_ANSWER_TIME // 10:ASK_PAUSE_TIME, 11:ANSWER_PAUSE_TIME,
-	 * 12:ASK_STAR_NUM, // 13:ANSWER_STAR_NUM,
-	 * 14:ASK_IS_COMMENT,15:ANSWER_IS_COMMENT, // 16:ASK_SHARE, 17:ANSWER_SHARE,
-	 * 18:ASK_EVALUATE, 19:ANSWER_EVALUATE private void analysis(LogInfo log)
-	 * throws Exception { try { String userid = log.getUserId(); Calendar tmp =
-	 * Calendar.getInstance(); ConfigHandler.getLogger().info("log content=" +
-	 * log.getContent()); ContentParser content =
-	 * gson.fromJson(log.getContent(), ContentParser.class); float ratio =
-	 * getRatioByProfile(userid); switch (log.actionType()) { case EVALUATE:
-	 * ConfigHandler.getLogger().info("evaluate"); // ASKER if
-	 * (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(0))) {
-	 * this.dialogInfos.get(content.getDialogID()).set(12,
-	 * content.getStarNumber());
-	 * this.dialogInfos.get(content.getDialogID()).set(14,
-	 * content.getContent().isEmpty());
-	 * this.dialogInfos.get(content.getDialogID()).set(16,
-	 * content.getIsShare());
-	 * this.dialogInfos.get(content.getDialogID()).set(18, true); } // ANSWERER
-	 * else if (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(1))) {
-	 * this.dialogInfos.get(content.getDialogID()).set(13,
-	 * content.getStarNumber());
-	 * this.dialogInfos.get(content.getDialogID()).set(15,
-	 * content.getContent().isEmpty());
-	 * this.dialogInfos.get(content.getDialogID()).set(17,
-	 * content.getIsShare());
-	 * this.dialogInfos.get(content.getDialogID()).set(19, true); } if
-	 * ((Boolean) this.dialogInfos.get(content.getDialogID()).get( 18) &&
-	 * (Boolean) this.dialogInfos .get(content.getDialogID()).get(19)) {
-	 * this.updateKnowledge( UserAction.CREATE_QUESTION, (String)
-	 * this.dialogInfos .get(content.getDialogID()).get(0), ratio
-	 * this.getContributeTotalScore(content .getDialogID()) * 0.5f, content);
-	 * this.updateKnowledge( UserAction.ACCEPT_CHAT, (String) this.dialogInfos
-	 * .get(content.getDialogID()).get(1), ratio
-	 * this.getContributeQuantityFromComment(content .getDialogID()) * 2,
-	 * content); this.saveContribution( (String) this.dialogInfos
-	 * .get(content.getDialogID()).get(1), content .getDialogID());
-	 * this.saveContribution( (String) this.dialogInfos
-	 * .get(content.getDialogID()).get(0), content .getDialogID());
-	 * this.dialogInfos.remove(content.getDialogID()); } break; case
-	 * CREATE_QUESTION: ConfigHandler.getLogger().info("CREATE_QUESTION");
-	 * Map<String, Integer> tmp1; if
-	 * (!this.userAskedTimesToday.containsKey(userid)) { tmp1 = new
-	 * HashMap<String, Integer>(); tmp1.put(content.getDialogID(), 1); } else {
-	 * tmp1 = this.userAskedTimesToday.get(userid);
-	 * tmp1.put(content.getDialogID(), this.userAskedTimesToday
-	 * .get(userid).size() + 1); } this.userAskedTimesToday.put(userid, tmp1);
-	 * if (this.dialogInfos.containsKey(content.getDialogID())) {
-	 * ConfigHandler.getLogger().warning( "DIALOG_ID DUPLICATED:" +
-	 * content.getDialogID()); } else {
-	 * this.dialogInfos.put(content.getDialogID(), new ArrayList<Object>(12));
-	 * // ArrayList must add and then set for (int i = 0; i < 12; i++) {
-	 * this.dialogInfos.get(content.getDialogID()).add( new Object()); }
-	 * this.dialogInfos.get(content.getDialogID()).set(0, log.getUserId());
-	 * this.dialogInfos.get(content.getDialogID()).set(10, 0);
-	 * this.dialogInfos.get(content.getDialogID()).set(11, 0); } break; case
-	 * NOTIFICATION_LIST: ConfigHandler.getLogger().info("NOTIFICATION_LIST");
-	 * if (content.getType().equals( Constants.CHAT_INVITATION_NOTIFICATION)) {
-	 * this.dialogInfos.get(content.getDialogID()).set(2, log.getTime());
-	 * this.dialogInfos.get(content.getDialogID()).set(8, log.getTime()); }
-	 * break; case ACCEPT_CHAT: ConfigHandler.getLogger().info("ACCEPT_CHAT");
-	 * Map<String, Integer> tmp2; if
-	 * (!this.userAnsweredTimesToday.containsKey(userid)) { tmp2 = new
-	 * HashMap<String, Integer>(); tmp2.put(content.getDialogID(), 1); } else {
-	 * tmp2 = this.userAnsweredTimesToday.get(userid);
-	 * tmp2.put(content.getDialogID(), this.userAnsweredTimesToday
-	 * .get(userid).size() + 1); } this.userAskedTimesToday.put(userid, tmp2);
-	 * this.dialogInfos.get(content.getDialogID()).set(1, log.getUserId());
-	 * this.dialogInfos .get(DatabaseHandler .getItemFromMongoDB(
-	 * Constants.MONGODB_NOTIFICATION_BAKS_COLLECTION,
-	 * Constants.NOTIFICATION_BAS_ID_IN_MONGODB_NOTIFICATION_BAKS_COLLECTION,
-	 * content.getNotificationID())
-	 * .get(Constants.DIALOG_ID_IN_MONGODB_NOTIFICATION_BAKS_COLLECTION))
-	 * .set(3, log.getTime()); break; case SEND_MESSAGE:
-	 * ConfigHandler.getLogger().info("SEND_MESSAGE"); if (null ==
-	 * this.dialogInfos.get(content.getDialogID())) {
-	 * this.dialogInfos.put(content.getDialogID(), new ArrayList<Object>(12));
-	 * // ArrayList must add and then set for (int i = 0; i < 12; i++) {
-	 * this.dialogInfos.get(content.getDialogID()).add(null); } if (null ==
-	 * this.dialogInfos.get(content.getDialogID()) .get(8)) {
-	 * 
-	 * this.dialogInfos.get(content.getDialogID()).set(8,
-	 * Long.valueOf(log.getTime())); } } ConfigHandler.getLogger().info(
-	 * "dialoginfo size=" + this.dialogInfos.get(content.getDialogID())
-	 * .size()); long diff = (log.getTime() - (Long) this.dialogInfos.get(
-	 * content.getDialogID()).get(8)) / 1000;
-	 * ConfigHandler.getLogger().info("diff=" + diff);
-	 * this.dialogInfos.get(content.getDialogID()).set(8, log.getTime()); //
-	 * ASKER if (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(0))) {
-	 * ConfigHandler.getLogger().info("ASKER");
-	 * this.dialogInfos.get(content.getDialogID()).set( 4, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(4) +
-	 * content.getContent().length());
-	 * this.dialogInfos.get(content.getDialogID()).set( 6, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(6) + diff); } //
-	 * ANSWERER else if (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(1))) {
-	 * ConfigHandler.getLogger().info("ANSWERER"); if
-	 * (this.dialogInfos.get(content.getDialogID()).get(9) != null) {
-	 * this.dialogInfos.get(content.getDialogID()).set(9, log.getTime()); }
-	 * this.dialogInfos.get(content.getDialogID()).set( 5, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(5) +
-	 * content.getContent().length());
-	 * this.dialogInfos.get(content.getDialogID()).set( 7, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(7) + diff); } break;
-	 * case LOGOUT: // ASKER if (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(0))) {
-	 * this.dialogInfos.get(content.getDialogID()).set( 10, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(10) + 1); } // ANSWERER
-	 * else if (log.getUserId().equals(
-	 * this.dialogInfos.get(content.getDialogID()).get(1))) {
-	 * this.dialogInfos.get(content.getDialogID()).set( 11, (Integer)
-	 * this.dialogInfos.get( content.getDialogID()).get(11) + 1); } break; case
-	 * CONTINUE: this.dialogInfos.get(content.getDialogID()).set(8,
-	 * log.getTime()); break;
-	 * 
-	 * case UPDATE_TAG: this.updateKnowledge(UserAction.UPDATE_TAG,
-	 * log.getUserId(), 10, content); break; case ADD_SCHOOL_INFO:
-	 * this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COLLEGE,
-	 * log.getUserId(), 20, content);// school
-	 * this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_MAJOR, log.getUserId(),
-	 * 20, content);// major break; case UPDATE_COMPANY_INFO:
-	 * this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_COMPANY,
-	 * log.getUserId(), 20, content);// company
-	 * this.updateKnowledge(UserAction.PERSONAL_INFO_ADD_TITLE, log.getUserId(),
-	 * 20, content);// position break; case AGREE:
-	 * this.updateKnowledge(UserAction.AGREE, log.getUserId(), ratio * 0.5f,
-	 * content); break; case DETAIL: this.updateKnowledge(UserAction.DETAIL,
-	 * log.getUserId(), ratio * 0.2f, content); break; case COMMENT:
-	 * this.updateKnowledge(UserAction.COMMENT, log.getUserId(), 0.8f, content);
-	 * case REMOVE_SCHOOL_INFO: break; default: break; }
-	 * 
-	 * } catch (Exception e) { e.printStackTrace(); return; } }
-	 * 
-	 * // String(dialog_id):ArrayList(0:ASKER, 1:ANSWERER, 2: PUSH_TIME, //
-	 * 3:ACCEPT_CHAT_TIME, 4:ASK_WORD_LENGTH, // 5:ANSWER_WORD_LENGTH,
-	 * 6:ASK_Timestamp, 7:ANSWER_Timestamp, 8: // LAST_UPDATE_TIME,
-	 * 9:FIRST_ANSWER_TIME // 10:ASK_PAUSE_TIME, 11:ANSWER_PAUSE_TIME,
-	 * 12:ASK_STAR_NUM, // 13:ANSWER_STAR_NUM,
-	 * 14:ASK_IS_COMMENT,15:ANSWER_IS_COMMENT, // 16:ASK_SHARE, 17:ANSWER_SHARE,
-	 * 18:ASK_EVALUATE, 19:ANSWER_EVALUATE
-	 * 
-	 * private float getAnswerContributeBase(String userid, String dialogid) {
-	 * int times = this.userAnsweredTimesToday.get(userid).get(dialogid); if
-	 * (times <= 3) { return 1; } else if (times <= 5) { return 1.05f; } else if
-	 * (times <= 7) { return 1; } else if (times <= 10) { return 0.9f; } else if
-	 * (times <= 20) { return 0.8f; } else if (times <= 50) { return 0.5f; }
-	 * return 0; }
-	 * 
-	 * private float getContributeQuantityFromComment(String dialogid) { int
-	 * stars = (Integer) this.dialogInfos.get(dialogid).get(13); if (stars == 1)
-	 * { return -0.5f; } else if (stars == 2) { return
-	 * this.getContributeTotalScore(dialogid) * 0.6f; } else if (stars == 3) {
-	 * return this.getContributeTotalScore(dialogid) * 1; } return 0; }
-	 * 
-	 * private float getContributeTotalScore(String dialogid) { return
-	 * this.getResponseScore(dialogid) + this.getAverageResponseScore(dialogid)
-	 * + this.getTotalWordsScore(dialogid) + this.getSelfCommentScore(dialogid)
-	 * + this.getShareScore(dialogid) + this.getLevelDistanceScore(dialogid) +
-	 * this.getPauseScore(dialogid); }
-	 * 
-	 * // float time: seconds private float getResponseScore(String dialogid) {
-	 * long time = ((Long) this.dialogInfos.get(dialogid).get(3) - (Long)
-	 * this.dialogInfos .get(dialogid).get(2)) / 1000; if (time == 0) { return
-	 * 0.2f; } else if (time <= 20) { return 0.2f; } else if (time <= 60) {
-	 * return 0.18f; } else if (time <= 180) { return 0.15f; } else if (time <=
-	 * 600) { return 0.10f; } else if (time <= 1200) { return 0.05f; } else if
-	 * (time <= 1800) { return 0.01f; } return 0; }
-	 * 
-	 * private float getAverageResponseScore(String dialogid) { float time =
-	 * (Long) this.dialogInfos.get(dialogid).get(7) / (Integer)
-	 * this.dialogInfos.get(dialogid).get(5) / 1000; if (time <= 3) { return
-	 * 0.3f; } else if (time <= 6) { return 0.25f; } else if (time <= 9) {
-	 * return 0.20f; } else if (time <= 12) { return 0.10f; } return 0; }
-	 * 
-	 * private float getTotalWordsScore(String dialogid) { int num = (Integer)
-	 * this.dialogInfos.get(dialogid).get(5); if (num == 0) { return 0; } else
-	 * if (num <= 35) { return 0.05f; } else if (num <= 70) { return 0.1f; }
-	 * else if (num <= 210) { return 0.14f; } else if (num <= 420) { return
-	 * 0.18f; } else { return 0.2f; } }
-	 * 
-	 * private float getSelfCommentScore(String dialogid) { boolean isComment =
-	 * (Boolean) this.dialogInfos.get(dialogid).get(15); boolean isStar =
-	 * (Integer) this.dialogInfos.get(dialogid).get(13) > 0; if (isComment &&
-	 * isStar) { return 0.05f; } else if (isStar) { return 0.03f; } return 0; }
-	 * 
-	 * private float getShareScore(String dialogid) { boolean isShare =
-	 * (Boolean) this.dialogInfos.get(dialogid).get(17); if (isShare) { return
-	 * 0.06f; }
-	 * 
-	 * 
-	 * return 0; }
-	 * 
-	 * 
-	 * private float getLevelDistanceScore(String dialogid) {
-	 * 
-	 * return 0; }
-	 * 
-	 * private float getPauseScore(String dialogid) { int times = (Integer)
-	 * this.dialogInfos.get(dialogid).get(11); if (times == 0) { return 0.05f; }
-	 * else if (times == 1) { return 0.025f; } else { return 0; } }
-	 * 
-	 * private float getAskConsumeBase(String userid, String dialogid) { int
-	 * times = this.userAskedTimesToday.get(userid).get(dialogid); if (times <=
-	 * 3) { return 1; } else if (times <= 5) { return 1.1f; } else if (times <=
-	 * 7) { return 1.2f; } else if (times <= 10) { return 1.25f; } else if
-	 * (times <= 15) { return 1.5f; } else { return 2.0f; } }
-	 * 
-	 * private float getConsumeQuantityFromComment(String dialogid) { int stars
-	 * = (Integer) this.dialogInfos.get(dialogid).get(12); if (stars == 1) {
-	 * return this.getConsumeTotalScore(dialogid) * 2.0f; } else if (stars == 2)
-	 * { return this.getConsumeTotalScore(dialogid) * 1.5f; } else if (stars ==
-	 * 3) { return this.getConsumeTotalScore(dialogid) * 1; } return 0; }
-	 * 
-	 * private float getConsumeTotalScore(String dialogid) { return 2
-	 * this.getContributeTotalScore(dialogid) -
-	 * (this.getAverageAskResponseScore(dialogid) +
-	 * this.getAskTotalWordsScore(dialogid) +
-	 * this.getConsumeSelfCommentScore(dialogid) +
-	 * this.getConsumeShareScore(dialogid) + this .getPauseScore(dialogid)) +
-	 * this.getConsumeKeywordScore(dialogid); }
-	 * 
-	 * private float getAverageAskResponseScore(String dialogid) { float time =
-	 * (Long) this.dialogInfos.get(dialogid).get(6) / (Integer)
-	 * this.dialogInfos.get(dialogid).get(4) / 1000; if (time <= 3) { return
-	 * 0.3f; } else if (time <= 6) { return 0.25f; } else if (time <= 9) {
-	 * return 0.20f; } else if (time <= 12) { return 0.10f; } return 0; }
-	 * 
-	 * private float getAskTotalWordsScore(String dialogid) { int num =
-	 * (Integer) this.dialogInfos.get(dialogid).get(4); if (num == 0) { return
-	 * 0; } else if (num <= 35) { return 0.05f; } else if (num <= 70) { return
-	 * 0.1f; } else if (num <= 210) { return 0.14f; } else if (num <= 420) {
-	 * return 0.18f; } else { return 0.2f; } }
-	 * 
-	 * private float getConsumeSelfCommentScore(String dialogid) { boolean
-	 * isComment = (Boolean) this.dialogInfos.get(dialogid).get(14); boolean
-	 * isStar = (Integer) this.dialogInfos.get(dialogid).get(12) > 0; if
-	 * (isComment && isStar) { return 0.1f; } else if (isStar) { return 0.06f; }
-	 * return 0; }
-	 * 
-	 * private float getConsumeShareScore(String dialogid) { boolean isShare =
-	 * (Boolean) this.dialogInfos.get(dialogid).get(16); if (isShare) { return
-	 * 0.06f; } return 0; }
-	 * 
-	 * private float getConsumeKeywordScore(String dialogid) { DBObject obj =
-	 * DatabaseHandler .getItemFromMongoDB(
-	 * Constants.MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * Constants.DIALOG_ID_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION,
-	 * dialogid); String[] origin_keywords = ((String) obj
-	 * .get(Constants.ORIGIN_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION
-	 * )) .split(Constants.TAG_SPLITER); String[] std_keywords = ((String) obj
-	 * .get(Constants.STD_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION))
-	 * .split(Constants.TAG_SPLITER); int times = 0; for (String keyword :
-	 * std_keywords) { if (Arrays.binarySearch(origin_keywords, keyword) < 0) {
-	 * times++; } } if (times == 0) { return 0.1f; } else if (times == 1) {
-	 * return 0.8f; } else if (times == 2) { return 0.5f; } else if (times <
-	 * origin_keywords.length) { return 0.2f; } return 0; }
-	 * 
-	 * private void saveContribution(String userid, String dialogid) {
-	 * MongoClient client = null; DBCursor cursor = null; try { client = new
-	 * MongoClient(ConfigHandler.getMongodbServer(),
-	 * ConfigHandler.getMongodbPort()); DB db =
-	 * client.getDB(ConfigHandler.getMongodbName()); // boolean auth =
-	 * db.authenticate(myUserName, myPassword); DBCollection coll = db
-	 * .getCollection(Constants.MONGODB_CONTRIBUTION_COLLECTION); BasicDBObject
-	 * query = new BasicDBObject(
-	 * Constants.USER_ID_FIELD_IN_MONGODB_CONTRIBUTION_COLLECTION, userid);
-	 * cursor = coll.find(query); if (cursor.hasNext()) { DBObject obj =
-	 * cursor.next(); DBObject updatedValue = new BasicDBObject(); updatedValue
-	 * .put(Constants.USER_ID_FIELD_IN_MONGODB_CONTRIBUTION_COLLECTION, (Float)
-	 * obj .get(Constants.VALUE_FIELD_IN_MONGODB_CONTRIBUTION_COLLECTION) +
-	 * this.getAnswerContributeBase(userid, dialogid)
-	 * this.getContributeQuantityFromComment(dialogid)); DBObject updateSetValue
-	 * = new BasicDBObject("$set", updatedValue); coll.update(obj,
-	 * updateSetValue); } else { BasicDBObject doc = new BasicDBObject(
-	 * Constants.USER_ID_FIELD_IN_MONGODB_CONTRIBUTION_COLLECTION, userid)
-	 * .append(Constants.VALUE_FIELD_IN_MONGODB_CONTRIBUTION_COLLECTION,
-	 * this.getAnswerContributeBase(userid, dialogid)
-	 * this.getContributeQuantityFromComment(dialogid)); coll.insert(doc); }
-	 * 
-	 * } catch (UnknownHostException e) { e.printStackTrace(); } finally { if
-	 * (cursor != null) { cursor.close(); } if (client != null) {
-	 * client.close(); } } }
-	 * 
-	 * private void saveConsumation(String userid, String dialogid) {
-	 * MongoClient client = null; DBCursor cursor = null; try { client = new
-	 * MongoClient(ConfigHandler.getMongodbServer(),
-	 * ConfigHandler.getMongodbPort()); DB db =
-	 * client.getDB(ConfigHandler.getMongodbName()); // boolean auth =
-	 * db.authenticate(myUserName, myPassword); DBCollection coll = db
-	 * .getCollection(Constants.MONGODB_CONSUMATION_COLLECTION); BasicDBObject
-	 * query = new BasicDBObject(
-	 * Constants.USER_ID_FIELD_IN_MONGODB_CONSUMATION_COLLECTION, userid);
-	 * cursor = coll.find(query); if (cursor.hasNext()) { DBObject obj =
-	 * cursor.next(); DBObject updatedValue = new BasicDBObject(); updatedValue
-	 * .put(Constants.USER_ID_FIELD_IN_MONGODB_CONSUMATION_COLLECTION, (Float)
-	 * obj .get(Constants.VALUE_FIELD_IN_MONGODB_CONSUMATION_COLLECTION) +
-	 * this.getAskConsumeBase(userid, dialogid)
-	 * this.getConsumeQuantityFromComment(dialogid)); DBObject updateSetValue =
-	 * new BasicDBObject("$set", updatedValue); coll.update(obj,
-	 * updateSetValue); } else { BasicDBObject doc = new BasicDBObject(
-	 * Constants.USER_ID_FIELD_IN_MONGODB_CONSUMATION_COLLECTION, userid)
-	 * .append(Constants.VALUE_FIELD_IN_MONGODB_CONSUMATION_COLLECTION,
-	 * this.getAskConsumeBase(userid, dialogid)
-	 * this.getConsumeQuantityFromComment(dialogid)); coll.insert(doc); }
-	 * cursor.close(); client.close(); } catch (UnknownHostException e) {
-	 * e.printStackTrace(); } finally { if (cursor != null) { cursor.close(); }
-	 * if (client != null) { client.close(); } } }
+	/**
+	 * 更新提问者的消耗量
 	 */
+	private boolean updateContribution(String userid, String dialogid) {
+		double contributerValue = getContribution(dialogid);
+		DatabaseHandler.updateContribution(userid, contributerValue);
+		ConfigHandler.getLogger().info(
+				"update contribution userid=" + userid + ",value="
+						+ contributerValue);
+		return true;
+	}
+
+	/**
+	 * 更新提问者的消耗量
+	 */
+	private boolean updateConsumation(String userid, String dialogid) {
+		double consumerValue = getConsumation(userid, dialogid);
+		DatabaseHandler.updateConsumation(userid, consumerValue);
+		ConfigHandler.getLogger().info(
+				"update consumation userid=" + userid + ",value="
+						+ consumerValue);
+		return true;
+	}
+
+	/**
+	 * 计算提问者的消耗量 消耗量=消耗量基数*消耗量权值 消耗量权值跟对方评价有关=总得分*对方评价 总得分=2*（此问题的贡献量）-此问题的消耗值
+	 * 此问题的消耗值跟提问者的平均响应时间等因素有关
+	 * 
+	 * @param userid
+	 * @param dialogid
+	 * @return
+	 */
+	private double getConsumation(String userid, String dialogid) {
+		return getConsumationBaseIndex(userid, dialogid)
+				* getConsumationWeight(userid, dialogid);
+	}
+
+	// 计算消耗量基数
+	private double getConsumationBaseIndex(String userid, String dialogid) {
+		return 1;
+	}
+
+	// 计算消耗量的权值
+	// 跟回答者对提问者的评价有关
+	private double getConsumationWeight(String userid, String dialogid) {
+		double weight = 0;
+		// 回答者的评价
+		int answerStar = (Integer) this.dialogInfos.get(dialogid).get(
+				Constants.DIALOG_ANSWER_STAR_NUM);
+		if (answerStar == 1) {
+			weight = 2.0 * getConsumationTotalScore(dialogid);
+		} else if (answerStar == 2) {
+			weight = 1.5 * getConsumationTotalScore(dialogid);
+		} else if (answerStar == 3) {
+			weight = 1.0 * getConsumationTotalScore(dialogid);
+		}
+		return weight;
+	}
+
+	/**
+	 * 计算消耗值的总得分 总得分=2*（此问题的贡献量）-此问题的消耗值
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private double getConsumationTotalScore(String dialogid) {
+		return 2 * getContribution(dialogid) - getComsumationScore(dialogid);
+	}
+
+	/**
+	 * 计算提问者抵扣得分 聊天中平均响应时间[不包含暂停的的时间]（30%）、 聊天过程总字数（40%）、 自己是否填写评价内容（10%）、
+	 * 是否进行分享（10%）、 关键词分（10%）、 附加分（5%）。
+	 * 
+	 * @return
+	 */
+	private double getComsumationScore(String dialogid) {
+		return 0.3 * this.getAverageAskResponseScore(dialogid) + 0.4
+				* this.getAskTotalWordsScore(dialogid) + 0.1
+				* this.getAskSelfCommentScore(dialogid) + 0.1
+				* this.getAskShareScore(dialogid) + 0.1
+				* getKeywordScore(dialogid) + 0.05
+				* this.getAskPauseScore(dialogid);
+	}
+
+	/**
+	 * 提问者聊天中平均响应时间
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAverageAskResponseScore(String dialogid) {
+		try {
+			float time = ((Long) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASK_TIMESTAMP) / 1000)
+					/ (Integer) this.dialogInfos.get(dialogid).get(
+							Constants.DIALOG_ASK_WORD_LENGTH);
+			if (time <= 3) {
+				return 0.3f;
+			} else if (time <= 6) {
+				return 0.25f;
+			} else if (time <= 9) {
+				return 0.20f;
+			} else if (time <= 12) {
+				return 0.10f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+
+	}
+
+	/**
+	 * 提问者聊天过程总字数
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAskTotalWordsScore(String dialogid) {
+		try {
+			int num = (Integer) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASK_WORD_LENGTH);
+			if (num == 0) {
+				return 0;
+			} else if (num <= 35) {
+				return 0.05f;
+			} else if (num <= 70) {
+				return 0.1f;
+			} else if (num <= 210) {
+				return 0.14f;
+			} else if (num <= 420) {
+				return 0.18f;
+			} else {
+				return 0.2f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+
+	}
+
+	/**
+	 * 提问者自己是否填写评价内容
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAskSelfCommentScore(String dialogid) {
+		try {
+			boolean isComment = (Boolean) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASK_IS_COMMENT);
+			boolean isStar = (Integer) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASK_STAR_NUM) > 0;
+			if (isComment && isStar) {
+				return 0.1f;
+			} else if (isStar) {
+				return 0.06f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	/**
+	 * 提问者是否进行分享
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAskShareScore(String dialogid) {
+		boolean isShare = (Boolean) this.dialogInfos.get(dialogid).get(
+				Constants.DIALOG_ASK_SHARE);
+		if (isShare) {
+			return 0.06f;
+		}
+		return 0;
+	}
+
+	/**
+	 * 关键词分,未实现
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getKeywordScore(String dialogid) {
+		return 0;
+	}
+
+	/**
+	 * 暂停附加分
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAskPauseScore(String dialogid) {
+		try {
+			int times = (Integer) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASK_PAUSE_TIME);
+			if (times == 0) {
+				return 0.05f;
+			} else if (times == 1) {
+				return 0.025f;
+			} else {
+				return 0;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	/**
+	 * 计算问题的贡献量 跟提问者对此问题的评价有关
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private double getContribution(String dialogid) {
+		// 提问者对此问题的评价
+		int askerStar = (Integer) this.dialogInfos.get(dialogid).get(
+				Constants.DIALOG_ASK_STAR_NUM);
+		if (askerStar == 1) {
+			return -0.5;
+		} else if (askerStar == 2) {
+			return getContributionScore(dialogid) * 0.6;
+		} else if (askerStar == 3) {
+			return getContributionScore(dialogid) * 1.0;
+		}
+		return 0;
+
+	}
+
+	/**
+	 * 计算贡献的总得分 总得分由以下几个部分组成： 响应新消息速度/主动回答（20%）、 聊天中平均响应时间[不包含暂停的的时间]（30%）、
+	 * 聊天过程总字数（40%）、 自己是否填写评价内容（5%）、 是否进行分享（5%）、 用户等级附加分（5%）、 暂停附加分（5%）。
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private double getContributionScore(String dialogid) {
+		return 0.2 * this.getAnswerResponseScore(dialogid) + 0.3
+				* this.getAverageAnswerResponseScore(dialogid) + 0.4
+				* this.getAnswerTotalWordsScore(dialogid) + 0.05
+				* this.getAnswerSelfCommentScore(dialogid) + 0.05
+				* this.getAnswerShareScore(dialogid) + 0.05
+				* this.getLevelDistanceScore(dialogid) + 0.05
+				* this.getAnswerPauseScore(dialogid);
+	}
+
+	/**
+	 * 回答者的响应新消息的速度
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAnswerResponseScore(String dialogid) {
+		try {
+			long time = ((Long) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ACCEPT_CHAT_TIME) - (Long) this.dialogInfos
+					.get(dialogid).get(Constants.DIALOG_PUSH_TIME)) / 1000;
+			if (time == 0) {
+				return 0.2f;
+			} else if (time <= 20) {
+				return 0.2f;
+			} else if (time <= 60) {
+				return 0.18f;
+			} else if (time <= 180) {
+				return 0.15f;
+			} else if (time <= 600) {
+				return 0.10f;
+			} else if (time <= 1200) {
+				return 0.05f;
+			} else if (time <= 1800) {
+				return 0.01f;
+			}
+		} catch (Exception e) {
+			// e.printStackTrace();
+			return 0;
+		}
+		return 0;
+	}
+
+	/**
+	 * 回答者的平均响应时间
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAverageAnswerResponseScore(String dialogid) {
+		try {
+			float time = ((Long) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER_TIMESTAMP) / 1000)
+					/ (Integer) this.dialogInfos.get(dialogid).get(
+							Constants.DIALOG_ANSWER_WORD_LENGTH);
+			if (time <= 3) {
+				return 0.3f;
+			} else if (time <= 6) {
+				return 0.25f;
+			} else if (time <= 9) {
+				return 0.20f;
+			} else if (time <= 12) {
+				return 0.10f;
+			} else {
+				return 0.0f;
+			}
+		} catch (Exception e) {
+			// e.printStackTrace();
+		}
+		return 0.0f;
+
+	}
+
+	/**
+	 * 回答者聊天过程总字数
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAnswerTotalWordsScore(String dialogid) {
+		try {
+			int num = (Integer) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER_WORD_LENGTH);
+			if (num == 0) {
+				return 0;
+			} else if (num <= 35) {
+				return 0.05f;
+			} else if (num <= 70) {
+				return 0.1f;
+			} else if (num <= 210) {
+				return 0.14f;
+			} else if (num <= 420) {
+				return 0.18f;
+			} else {
+				return 0.2f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	/**
+	 * 回答者是否填写评价内容
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAnswerSelfCommentScore(String dialogid) {
+		try {
+			boolean isComment = (Boolean) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER_IS_COMMENT);
+			boolean isStar = (Integer) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER_STAR_NUM) > 0;
+			if (isComment && isStar) {
+				return 0.05f;
+			} else if (isStar) {
+				return 0.03f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	/**
+	 * 回答者是否分享
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAnswerShareScore(String dialogid) {
+		try {
+			boolean isShare = (Boolean) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER_SHARE);
+			if (isShare) {
+				return 0.06f;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	/**
+	 * 用户等级附加分（还没实现）
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getLevelDistanceScore(String dialogid) {
+		return 0;
+	}
+
+	/**
+	 * 回答者暂停附加分
+	 * 
+	 * @param dialogid
+	 * @return
+	 */
+	private float getAnswerPauseScore(String dialogid) {
+		int times = (Integer) this.dialogInfos.get(dialogid).get(
+				Constants.DIALOG_ANSWER_PAUSE_TIME);
+		if (times == 0) {
+			return 0.05f;
+		} else if (times == 1) {
+			return 0.025f;
+		} else {
+			return 0;
+		}
+	}
 }

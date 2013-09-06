@@ -52,4 +52,12 @@ public class Constants {
 	public final static int DIALOG_ASK_UPDATE_TIME=20;
 	public final static int DIALOG_ANSWER_UPDATE_TIME=21;
 	public final static int EVENT_KIND=22;
+	
+	
+	public static final String CONTRIBUTION_COLLECTION = "contribution";
+    public static final String VALUE_FIELD_IN_CONTRIBUTION_COLLECTION = "value";
+    public static final String ORIGIN_KEYWORDS_FIELD_IN_MONGODB_DIALOG_KEYWORDS_COLLECTION = "origin_keywords";
+   
+    public static final String CONSUMATION_COLLECTION = "consumation";
+    public static final String VALUE_FIELD_IN_CONSUMATION_COLLECTION = "value";
 }

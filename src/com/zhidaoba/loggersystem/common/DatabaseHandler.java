@@ -139,56 +139,159 @@ public class DatabaseHandler {
 		}
 		return true;
 	}
-	
+
 	/**
 	 * 查询mysql，得到当前的用户和标签的相关度
+	 * 
 	 * @param expertTagRelevancy
 	 */
-	public static void getRelevancyFromMysql(Map<String, Map<String, Float>> expertTagRelevancy) {
-        ConfigHandler.getLogger().info("begin getRelevancyFromMysql");
-        ResultSet result = null;
-        Statement stmt = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(
-                    ConfigHandler.getMysqlPath(),
-                    ConfigHandler.getMysqlUsername(),
-                    ConfigHandler.getMysqlPassword());
+	public static void getRelevancyFromMysql(
+			Map<String, Map<String, Float>> expertTagRelevancy) {
+		ConfigHandler.getLogger().info("begin getRelevancyFromMysql");
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					ConfigHandler.getMysqlPath(),
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
 
-            stmt = conn.createStatement();
-            result = stmt.executeQuery("SELECT * from " + Constants.TABLE_RELEVANCY_NAME);
-            while (result != null && result.next()) {
-                String tag = result.getString(Constants.TAG);
-                String user_id = result.getString(Constants.USER_ID);
-                float relevancy = result.getFloat(Constants.RELEVANCY);
-                if (!expertTagRelevancy.containsKey(user_id)) {
-                    expertTagRelevancy.put(user_id, new HashMap<String, Float>());
-                }
-                expertTagRelevancy.get(user_id).put(tag, relevancy);
-            }
+			stmt = conn.createStatement();
+			result = stmt.executeQuery("SELECT * from "
+					+ Constants.TABLE_RELEVANCY_NAME);
+			while (result != null && result.next()) {
+				String tag = result.getString(Constants.TAG);
+				String user_id = result.getString(Constants.USER_ID);
+				float relevancy = result.getFloat(Constants.RELEVANCY);
+				if (!expertTagRelevancy.containsKey(user_id)) {
+					expertTagRelevancy.put(user_id,
+							new HashMap<String, Float>());
+				}
+				expertTagRelevancy.get(user_id).put(tag, relevancy);
+			}
 
-            conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
-            if (result != null) {
-                try {
-                    result.close();
-                } catch (SQLException sqlEx) {
-                }
-                result = null;
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException sqlEx) {
-                }
-                stmt = null;
-            }
-        }
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
 
-    }
+	}
+
+	/**
+	 * 更新用户的贡献值
+	 * 
+	 * @param userid
+	 * @param value
+	 * @return
+	 */
+	public static boolean updateContribution(String userid, double value) {
+		MongoClient client = null;
+		DBCursor cursor = null;
+		try {
+			client = new MongoClient(ConfigHandler.getMongodbServer(),
+					ConfigHandler.getMongodbPort());
+			DB db = client.getDB(ConfigHandler.getMongodbName());
+			// boolean auth = db.authenticate(myUserName, myPassword);
+			DBCollection coll = db
+					.getCollection(Constants.CONTRIBUTION_COLLECTION);
+			BasicDBObject query = new BasicDBObject(Constants.USER_ID, userid);
+			cursor = coll.find(query);
+			if (cursor.hasNext()) {
+				DBObject obj = cursor.next();
+				DBObject updatedValue = new BasicDBObject();
+				updatedValue
+						.put(Constants.VALUE_FIELD_IN_CONTRIBUTION_COLLECTION,
+								(Double) obj
+										.get(Constants.VALUE_FIELD_IN_CONTRIBUTION_COLLECTION)
+										+ value);
+				DBObject updateSetValue = new BasicDBObject("$set",
+						updatedValue);
+				coll.update(obj, updateSetValue);
+			} else {
+				BasicDBObject doc = new BasicDBObject(Constants.USER_ID, userid)
+						.append(Constants.VALUE_FIELD_IN_CONTRIBUTION_COLLECTION,
+								value);
+				coll.insert(doc);
+			}
+
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+			if (client != null) {
+				client.close();
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 更新用户的消耗值
+	 * 
+	 * @param userid
+	 * @param value
+	 * @return
+	 */
+	public static boolean updateConsumation(String userid, double value) {
+		MongoClient client = null;
+		DBCursor cursor = null;
+		try {
+			client = new MongoClient(ConfigHandler.getMongodbServer(),
+					ConfigHandler.getMongodbPort());
+			DB db = client.getDB(ConfigHandler.getMongodbName());
+			DBCollection coll = db
+					.getCollection(Constants.CONSUMATION_COLLECTION);
+			BasicDBObject query = new BasicDBObject(Constants.USER_ID, userid);
+			cursor = coll.find(query);
+			if (cursor.hasNext()) {
+				DBObject obj = cursor.next();
+				DBObject updatedValue = new BasicDBObject();
+				updatedValue
+						.put(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION,
+								(Double) obj
+										.get(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION)
+										+ value);
+				DBObject updateSetValue = new BasicDBObject("$set",
+						updatedValue);
+				coll.update(obj, updateSetValue);
+			} else {
+				BasicDBObject doc = new BasicDBObject(Constants.USER_ID, userid)
+						.append(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION,
+								value);
+				coll.insert(doc);
+			}
+
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+			if (client != null) {
+				client.close();
+			}
+		}
+		return true;
+	}
 
 }
