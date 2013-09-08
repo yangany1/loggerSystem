@@ -3,6 +3,7 @@ package com.zhidaoba.loggersystem.common;
 import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -11,6 +12,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
+
+import org.bson.types.ObjectId;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -294,4 +297,151 @@ public class DatabaseHandler {
 		return true;
 	}
 
+	/**
+	 * 从mongodb中查询某个字段的值
+	 * @param colname
+	 * @param field
+	 * @param value
+	 * @return
+	 */
+	public static DBObject getItemFromMongoDB(String collectionname, String field, String value) {
+        MongoClient client = null;
+        DBCursor cursor = null;
+        try {
+            ConfigHandler.getLogger().info("mongo sever=" + ConfigHandler.getMongodbServer() + ",mongo port=" + ConfigHandler.getMongodbPort() + ",name=" + ConfigHandler.getMongodbName());
+            client = new MongoClient(
+                    ConfigHandler.getMongodbServer(),
+                    ConfigHandler.getMongodbPort());
+            DB db = client.getDB(ConfigHandler.getMongodbName());
+            ConfigHandler.getLogger().info("collectionname=" + collectionname + ",field=" + field + ",value=" + value);
+            DBCollection coll = db.getCollection(collectionname);
+            BasicDBObject query = null;
+            if (field == "_id") {
+                query = new BasicDBObject(field, new ObjectId(value));
+            } else {
+                query = new BasicDBObject(field, value);
+            }
+            cursor = coll.find(query);
+            if (cursor.hasNext()) {
+                DBObject object = cursor.next();
+                cursor.close();
+                client.close();
+                return object;
+            } else {
+                ConfigHandler.getLogger().info("cannot find dialog_id");
+                return null;
+            }
+
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            if (client != null) {
+                client.close();
+            }
+        }
+        return null;
+    }
+	
+	/**
+	 * 从relationship中找到与from相似的词赋予相似度
+	 * @param from
+	 * @return
+	 */
+	public static ArrayList<String> getRelationshipsFromMysql(String from) {
+        ArrayList<String> words = new ArrayList<String>();
+        ResultSet result = null;
+        Statement stmt = null;
+        try {
+            Class.forName("com.mysql.jdbc.Driver");
+            Connection conn = DriverManager.getConnection(
+                    ConfigHandler.getMysqlPath(),
+                    ConfigHandler.getMysqlUsername(),
+                    ConfigHandler.getMysqlPassword());
+            stmt = conn.createStatement();
+
+            String sqlstmt = "SELECT " + "`to`"
+                    + " from " + Constants.TABLE_RELATIONSHIPS_NAME
+                    + " where `from` = " + "\"" + from + "\" ORDER BY " + Constants.VALUE_FIELD + " DESC limit 100";
+            ConfigHandler.getLogger().info("sql=" + sqlstmt);
+            result = stmt.executeQuery(sqlstmt);
+
+            while (result != null && result.next()) {
+                words.add(result.getString(Constants.TO_FIELD));
+            }
+            ConfigHandler.getLogger().info("words size=" + words.size());
+            conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } finally {
+            if (result != null) {
+                try {
+                    result.close();
+                } catch (SQLException sqlEx) {
+                }
+                result = null;
+            }
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException sqlEx) {
+                }
+                stmt = null;
+            }
+        }
+        return words;
+
+    }
+	
+	/**
+	 * 更新专家与标签的相似度
+	 * @param user_id
+	 * @param tags
+	 * @param relevancies
+	 */
+	 public static boolean
+	    updateRelevancyToMysql(String user_id, String[] tags, float[] relevancies) {
+	        System.out.println("update relevancy in mysql length=" + tags.length);
+	        Connection conn = null;
+	        PreparedStatement stmt = null;
+	        try {
+	            Class.forName("com.mysql.jdbc.Driver");
+	            conn = DriverManager.getConnection(
+	                    ConfigHandler.getMysqlPath(),
+	                    ConfigHandler.getMysqlUsername(),
+	                    ConfigHandler.getMysqlPassword());
+	            for (int i = 0; i < tags.length; i++) {
+	                String update = "insert into " +Constants.TABLE_RELEVANCY_NAME + " values (?,?,?) on duplicate key update relevancy=?";
+	                ConfigHandler.getLogger().info("update sentence=" + update);
+	                stmt = conn.prepareStatement(update);
+	                stmt.setString(2, user_id);
+	                stmt.setString(1, tags[i]);
+	                stmt.setFloat(3, relevancies[i]);
+	                stmt.setFloat(4, relevancies[i]);
+	                boolean flag = stmt.execute();
+	                ConfigHandler.getLogger().info("update relevancy success useid=" + user_id + " tags id=" + tags[i] + " rele=" + relevancies[i]);
+	            }
+	            conn.close();
+	        } catch (Exception e) {
+	            e.printStackTrace();
+	        } finally {
+	            try {
+	                if (stmt != null) {
+	                    stmt.close();
+	                }
+	                if (conn != null) {
+	                    conn.close();
+	                }
+
+	            } catch (Exception e) {
+	                e.printStackTrace();
+	            }
+
+	        }
+	        return true;
+	    }
 }

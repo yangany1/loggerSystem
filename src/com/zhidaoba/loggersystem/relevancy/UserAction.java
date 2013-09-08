@@ -19,7 +19,7 @@ public enum UserAction {
     PERSONAL_INFO_ADD_MAJOR("personal_info_add_major", 16),
     PERSONAL_INFO_ADD_COMPANY("personal_info_add_company", 17),
     PERSONAL_INFO_ADD_TITLE("personal_info_add_title", 18),
-    UPDATE_TAG("/users/update_tags", 19), 
+    ADD_TAG("/v1.1/users/add_tags", 19),
     CLICK("click", 20), NOT_USE_NOW("null", 21);
 
     private String name;
