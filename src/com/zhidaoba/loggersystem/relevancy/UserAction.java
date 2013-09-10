@@ -1,7 +1,7 @@
 package com.zhidaoba.loggersystem.relevancy;
 
 public enum UserAction {
-    LOGIN("login", 1),
+    LOGIN("/users/login", 1),
     LOGOUT("/users/logout", 2), 
     CREATE_QUESTION("/questions/create_question", 3),
     COMMENT("/dialogs/comment", 4), 

@@ -185,7 +185,7 @@ public class RelevancyThread {
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ASK_SHARE, content.getIsShare());
 			// 标记提问者已经评价
-			this.dialogInfos.get(content.getDialogID()).set(18, true);
+			this.dialogInfos.get(content.getDialogID()).set(Constants.DIALOG_ASK_EVALUATE, true);
 
 		}
 		// 对于回答者
@@ -550,6 +550,7 @@ public class RelevancyThread {
 	 */
 	private boolean updateExpertRelevancy(String userid, String[] tags,
 			double addValue, double beta) {
+		//tags[0]是“$$**”,需要变成"**",所以要删除前面2个字符
 		tags[0] = tags[0].substring(2);
 		double weight = addValue / tags.length;
 		ArrayList<String> toAddTags = new ArrayList<String>();

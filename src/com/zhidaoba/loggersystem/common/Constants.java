@@ -60,4 +60,17 @@ public class Constants {
    
     public static final String CONSUMATION_COLLECTION = "consumation";
     public static final String VALUE_FIELD_IN_CONSUMATION_COLLECTION = "value";
+    
+    
+    public static final String DIALOG_KEYWORDS_COLLECTION = "dialog_keywords";
+    public static final String DIALOG_ID = "dialog_id";
+    public static final String STD_KEYWORDS_FIELD = "std_keywords";
+    public static final String TAG_SPLITER="$$";
+    
+    public static final String DIALOG_COLLECTION = "dialogs";
+    public static final String DIALOG_ID_IN_DIALOG_COLLECTION = "_id";
+    
+    public final static String TABLE_RELATIONSHIPS_NAME = "relationships";
+    public final static String TO_FIELD = "to";
+    public final static String VALUE_FIELD = "value";
 }
