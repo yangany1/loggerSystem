@@ -1,5 +1,7 @@
 package com.zhidaoba.loggersystem.relevancy;
+
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,13 +21,17 @@ public class RelevancyThread {
 	// private Calendar today = Calendar.getInstance();
 	private Map<String, ArrayList<Object>> dialogInfos = new HashMap<String, ArrayList<Object>>();
 	private CalculateDetail cal = null;
+	private Calendar calendar = null;
+	// 记录用户每天提问或者回答的问题个数
+	private Map<String, Map<String, Integer>> userAskedTimesToday = new HashMap<String, Map<String, Integer>>();
+	private Map<String, Map<String, Integer>> userAnsweredTimesToday = new HashMap<String, Map<String, Integer>>();
 
 	public void init() {
 		expertTagRelevancy = new HashMap<String, Map<String, Float>>();
 		DatabaseHandler.getRelevancyFromMysql(expertTagRelevancy);
 		ConfigHandler.getLogger().info(
 				"expertTag size=" + expertTagRelevancy.size());
-		cal = new CalculateDetail(dialogInfos);
+		cal = new CalculateDetail(dialogInfos,userAskedTimesToday,userAnsweredTimesToday);
 	}
 
 	/**
@@ -94,6 +100,11 @@ public class RelevancyThread {
 	 * @throws Exception
 	 */
 	private void analysis(RelevancyObject log) throws Exception {
+		// calendar存数当然正在分析的log的时间
+		if (calendar == null) {
+			calendar = Calendar.getInstance();
+			calendar.setTimeInMillis(log.getTime());
+		}
 		try {
 			ConfigHandler.getLogger().info("log content=" + log.getContent());
 			ContentParser content = gson.fromJson(log.getContent(),
@@ -185,7 +196,8 @@ public class RelevancyThread {
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ASK_SHARE, content.getIsShare());
 			// 标记提问者已经评价
-			this.dialogInfos.get(content.getDialogID()).set(Constants.DIALOG_ASK_EVALUATE, true);
+			this.dialogInfos.get(content.getDialogID()).set(
+					Constants.DIALOG_ASK_EVALUATE, true);
 
 		}
 		// 对于回答者
@@ -253,6 +265,18 @@ public class RelevancyThread {
 	}
 
 	private boolean initCreateQuesion(RelevancyObject log, ContentParser content) {
+		// 增加提问者的当天的提问问题个数
+		Calendar current = Calendar.getInstance();
+		current.setTimeInMillis(log.getTime());
+		// 如果是新的一天，则清空当天提问和回答的数据结构
+		if (calendar.get(Calendar.DAY_OF_MONTH) != current
+				.get(Calendar.DAY_OF_MONTH)) {
+			clearUserAskQuestion(log.getUserId(), content.getDialogID());
+			clearUserAnswerQuestion(log.getUserId(), content.getDialogID());
+			calendar=current;
+		}else{
+			updateUserAskQuestion(log.getUserId(), content.getDialogID());
+		}
 		// 记录提问者的id
 		this.dialogInfos.get(content.getDialogID()).set(Constants.DIALOG_ASKER,
 				log.getUserId());
@@ -334,6 +358,17 @@ public class RelevancyThread {
 	public boolean acceptChatEvent(RelevancyObject log, ContentParser content) {
 
 		try {
+			Calendar current = Calendar.getInstance();
+			current.setTimeInMillis(log.getTime());
+			// 如果是新的一天，则清空当天回答和提问的数据结构
+			if (calendar.get(Calendar.DAY_OF_MONTH) != current
+					.get(Calendar.DAY_OF_MONTH)) {
+				clearUserAskQuestion(log.getUserId(), content.getDialogID());
+				clearUserAnswerQuestion(log.getUserId(), content.getDialogID());
+				calendar=current;
+			}else{
+				updateUserAnswerQuestion(log.getUserId(), content.getDialogID());
+			}
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ANSWER, log.getUserId());
 			this.dialogInfos.get(content.getDialogID()).set(
@@ -550,7 +585,7 @@ public class RelevancyThread {
 	 */
 	private boolean updateExpertRelevancy(String userid, String[] tags,
 			double addValue, double beta) {
-		//tags[0]是“$$**”,需要变成"**",所以要删除前面2个字符
+		// tags[0]是“$$**”,需要变成"**",所以要删除前面2个字符
 		tags[0] = tags[0].substring(2);
 		double weight = addValue / tags.length;
 		ArrayList<String> toAddTags = new ArrayList<String>();
@@ -612,6 +647,76 @@ public class RelevancyThread {
 		}
 		DatabaseHandler.updateRelevancyToMysql(userid, stag,
 				ArrayUtils.toPrimitive(frele, 0.0f));
+		return true;
+	}
+
+	/**
+	 * 清空userAskedTimesToday数据结构，表示新的一天
+	 * @param userid
+	 * @param dialogid
+	 * @return
+	 */
+	private boolean clearUserAskQuestion(String userid, String dialogid) {
+		userAskedTimesToday.clear();
+		Map<String, Integer> map = new HashMap<String, Integer>();
+		map.put(dialogid, 1);
+		userAskedTimesToday.put(userid, map);
+		return true;
+	}
+
+	/**
+	 * 清空userAnsweredTimesToday数据结构，表示新的一天
+	 * @param userid
+	 * @param dialogid
+	 * @return
+	 */
+	private boolean clearUserAnswerQuestion(String userid, String dialogid) {
+		userAnsweredTimesToday.clear();
+		Map<String, Integer> map = new HashMap<String, Integer>();
+		map.put(dialogid, 1);
+		userAnsweredTimesToday.put(userid, map);
+		return true;
+	}
+	
+	/**
+	 * 更新userAskedTimesToday
+	 * @param userid
+	 * @param dialogid
+	 * @return
+	 */
+	private boolean updateUserAskQuestion(String userid,String dialogid){
+		//如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
+		if(!userAskedTimesToday.containsKey(userid)){
+			Map<String, Integer> map = new HashMap<String, Integer>();
+			map.put(dialogid, 1);
+			userAskedTimesToday.put(userid, map);
+		}
+		else{
+			//得到用户当天提问的问题数，然后将此问题加1
+			int currentNum=userAskedTimesToday.get(userid).size();
+			userAskedTimesToday.get(userid).put(dialogid, currentNum+1);
+		}
+		return true;
+	}
+	
+	/**
+	 * 更新userAnsweredTimesToday
+	 * @param userid
+	 * @param dialogid
+	 * @return
+	 */
+	private boolean updateUserAnswerQuestion(String userid,String dialogid){
+		//如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
+		if(!userAnsweredTimesToday.containsKey(userid)){
+			Map<String, Integer> map = new HashMap<String, Integer>();
+			map.put(dialogid, 1);
+			userAnsweredTimesToday.put(userid, map);
+		}
+		else{
+			//得到用户当天提问的问题数，然后将此问题加1
+			int currentNum=userAnsweredTimesToday.get(userid).size();
+			userAnsweredTimesToday.get(userid).put(dialogid, currentNum+1);
+		}
 		return true;
 	}
 }

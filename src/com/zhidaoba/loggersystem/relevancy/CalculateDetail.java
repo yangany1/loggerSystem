@@ -1,15 +1,22 @@
 package com.zhidaoba.loggersystem.relevancy;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 
 import com.zhidaoba.loggersystem.common.Constants;
 
 public class CalculateDetail {
 	private Map<String, ArrayList<Object>> dialogInfos;
+	private Map<String, Map<String, Integer>> userAskedTimesToday;
+	private Map<String, Map<String, Integer>> userAnsweredTimesToday;
 
-	public CalculateDetail(Map<String, ArrayList<Object>> dialogInfos) {
+	public CalculateDetail(Map<String, ArrayList<Object>> dialogInfos,
+			Map<String, Map<String, Integer>> userAskedTimesToday,
+			Map<String, Map<String, Integer>> userAnsweredTimesToday) {
 		this.dialogInfos = dialogInfos;
+		this.userAskedTimesToday = userAskedTimesToday;
+		this.userAnsweredTimesToday = userAnsweredTimesToday;
 	}
 
 	/**
@@ -27,7 +34,29 @@ public class CalculateDetail {
 
 	// 计算消耗量基数
 	public double getConsumationBaseIndex(String dialogid) {
-		return 1;
+		try {
+			String ask_userid = (String) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ASKER);
+			// 每天回答的第几个问题
+			int num = this.userAskedTimesToday.get(ask_userid).get(dialogid);
+			System.out.println("消耗量基数:" + num);
+			if (num <= 3) {
+				return 1;
+			} else if (num <= 5) {
+				return 1.1;
+			} else if (num <= 7) {
+				return 1.2;
+			} else if (num <= 10) {
+				return 1.25;
+			} else if (num <= 15) {
+				return 1.5;
+			} else {
+				return 2.0;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return 0;
+		}
 	}
 
 	// 计算消耗量的权值
@@ -230,12 +259,38 @@ public class CalculateDetail {
 	 * @param dialog
 	 * @return
 	 */
-	public double getContributionBase(String dialog) {
-		return 1.0;
+	public double getContributionBase(String dialogid) {
+		try {
+			String answer_userid = (String) this.dialogInfos.get(dialogid).get(
+					Constants.DIALOG_ANSWER);
+			// 每天回答的第几个问题
+			int num = this.userAnsweredTimesToday.get(answer_userid).get(
+					dialogid);
+			System.out.println("贡献率基数:" + num);
+			if (num <= 3) {
+				return 1;
+			} else if (num <= 5) {
+				return 1.05;
+			} else if (num <= 7) {
+				return 1;
+			} else if (num <= 10) {
+				return 0.9;
+			} else if (num <= 20) {
+				return 0.8;
+			} else if (num <= 50) {
+				return 0.5;
+			} else {
+				return 0;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return 0;
+		}
 	}
 
 	/**
 	 * 贡献量权值
+	 * 
 	 * @param dialogid
 	 * @return
 	 */
