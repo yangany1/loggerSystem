@@ -65,7 +65,7 @@ public class RelevancyThread {
 	 * 对每个log记录进行分析操作
 	 * 
 	 * @return
-	 */
+	 */ 
 	private boolean analysisFromMongoDB() {
 		List<DBObject> logList = DatabaseHandler
 				.getRelevancyObjectsFromMongoDB();
@@ -74,7 +74,8 @@ public class RelevancyThread {
 					(String) obj.get(Constants.LOG_USERID_FIELD),
 					(Long) obj.get(Constants.LOG_LOGTIME_FIELD),
 					(String) obj.get(Constants.LOG_ACTION_FIELD),
-					(String) obj.get(Constants.LOG_CONTENT_FIELD));
+					(String) obj.get(Constants.LOG_CONTENT_FIELD),
+					(String) obj.get(Constants.LOG_DIALOG_ID_FIELD));
 			try {
 				analysis(r);
 			} catch (Exception e) {
@@ -151,6 +152,8 @@ public class RelevancyThread {
 				break;
 			case AGREE:
 				ConfigHandler.getLogger().info("AGREE");
+				//此处是针对log处理的
+				content.setDialog_id(log.getDialog_id());
 				this.updateKnowledge(UserAction.AGREE, log.getUserId(), 0.5f,
 						content);
 				break;
@@ -251,6 +254,8 @@ public class RelevancyThread {
 	 */
 	public boolean createQuestionEvent(RelevancyObject log,
 			ContentParser content) {
+		//此处是针对log处理的
+		content.setDialog_id(log.getDialog_id());
 		// 已经分析过这个dialog
 		if (this.dialogInfos.containsKey(content.getDialogID())) {
 			ConfigHandler.getLogger().warning(
@@ -356,7 +361,8 @@ public class RelevancyThread {
 	 * @return
 	 */
 	public boolean acceptChatEvent(RelevancyObject log, ContentParser content) {
-
+		//此处针对日志进行的处理
+		content.setDialog_id(log.getDialog_id());
 		try {
 			Calendar current = Calendar.getInstance();
 			current.setTimeInMillis(log.getTime());
@@ -455,6 +461,8 @@ public class RelevancyThread {
 	 * @return
 	 */
 	public boolean LogoutEvent(RelevancyObject log, ContentParser content) {
+		//此处是针对log处理的
+		content.setDialog_id(log.getDialog_id());
 		// 对于提问者,增加暂停次数
 		if (log.getUserId().equals(
 				log.getUserId().equals(

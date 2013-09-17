@@ -50,6 +50,7 @@ public class DatabaseHandler {
 						.append(Constants.LOGTIME_FIELD, content.getTime())
 						.append(Constants.ACTION_FIELD, content.getAction())
 						.append(Constants.CONTENT_FIELD, content.getContent())
+						.append(Constants.DIALOG_ID_FIELD, content.getDialog_id())
 						.append(Constants.ISHANDLED_FIELD, false);
 				coll.insert(doc);
 				changeList.remove(content);

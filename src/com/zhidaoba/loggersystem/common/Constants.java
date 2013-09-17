@@ -7,6 +7,7 @@ public class Constants {
 	public final static String LOGTIME_FIELD = "logtime";
 	public final static String ACTION_FIELD = "action";
 	public final static String CONTENT_FIELD = "content";
+	public final static String DIALOG_ID_FIELD = "dialogid";
 	public final static String ISHANDLED_FIELD = "isHandled";
 
 	public static final String LOG_BEGIN = "the request begin at ";
@@ -14,6 +15,7 @@ public class Constants {
 	public static final String LOG_CONTENT = "params:";
 	public static final String LOG_UID = "current user id is:";
 	public static final String LOG_END = "the response over at ";
+	public static final String LOG_DIALOG_ID = "dialog id is:";
 	public static final String LOG_UNIQUE_ID = "the unique id is ";
 	public static final String LOG_ACTION_SPLIT_LEFT = "/:version";
 	public static final String LOG_ACTION_SPLIT_RIGHT = "(.:format)";
@@ -23,6 +25,7 @@ public class Constants {
 	public static final String LOG_USERID_FIELD = "user_id";
 	public static final String LOG_LOGTIME_FIELD = "logtime";
 	public static final String LOG_ACTION_FIELD = "action";
+	public static final String LOG_DIALOG_ID_FIELD = "dialogid";
 	public static final String LOG_CONTENT_FIELD = "content";
 	
 	public final static String TABLE_RELEVANCY_NAME = "tag_expert_relevancy";

@@ -51,6 +51,7 @@ public class CollectLog {
 		String content = "";
 		String uid = "";
 		String tmp = "";
+		String dialog_id="";
 
 		File dir = new File(ConfigHandler.getLogDir());
 		long lastReadTime = ConfigHandler.getRevLogLastReadTime();
@@ -110,14 +111,17 @@ public class CollectLog {
 							} else if (line.startsWith(Constants.LOG_UID)) {
 								uid = line.split(Constants.LOG_UID)[1];
 								System.out.println("userid:" + uid);
-							} else if (status == 1
+							} else if (line.startsWith(Constants.LOG_DIALOG_ID)) {
+								dialog_id = line.split(Constants.LOG_DIALOG_ID)[1];
+								System.out.println("dialog:" + uid);}
+							else if (status == 1
 									&& line.startsWith(Constants.LOG_END)) {
 								status = 0;
 
 								if (logtime >= lastReadTime && !uid.equals("")) {
 									System.out.println("add to list");
 									changeList.add(new RelevancyObject(uid,
-											logtime, action, content));
+											logtime, action, content,dialog_id));
 									lastReadTime = logtime;
 									lastReadLineNumber = i;
 									lastReadFileName = file.getName();
@@ -132,6 +136,7 @@ public class CollectLog {
 								action = "";
 								content = "";
 								uid = "";
+								dialog_id="";
 							}
 
 						}
@@ -161,7 +166,7 @@ public class CollectLog {
 		ConfigHandler.setRevLogLastReadLineNumber(lastReadLineNumber);
 		System.out.println("save property");
 		System.gc();
-		//ConfigHandler.save();
+		// ConfigHandler.save();
 	}
 
 	public static void writeLogtoMongo() {
