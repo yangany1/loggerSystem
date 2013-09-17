@@ -73,4 +73,20 @@ public class Constants {
     public final static String TABLE_RELATIONSHIPS_NAME = "relationships";
     public final static String TO_FIELD = "to";
     public final static String VALUE_FIELD = "value";
+    
+    
+  //紧急库的超时时间
+  	public final static int OVERTIME_MINUTE=100;
+  	//计算rank时没有异常，正常返回
+  	public final static int SUCCESS=0;
+  	//是否超时
+  	public final static int OVERTIME=1;
+  	//显示次数是否超过最大次数
+  	public final static int OVERSHOWED=2;
+  	
+  	//毫秒转分钟
+  	public final static int MILLSECONDSTOMINUTE=60*1000;
+  	
+  	//循环更新时间（毫秒）
+  	public final static int REPEATIME=60*1000;
 }

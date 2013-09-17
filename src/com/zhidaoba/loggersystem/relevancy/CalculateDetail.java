@@ -1,7 +1,6 @@
 package com.zhidaoba.loggersystem.relevancy;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 import com.zhidaoba.loggersystem.common.Constants;

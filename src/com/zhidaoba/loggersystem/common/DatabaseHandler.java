@@ -117,7 +117,6 @@ public class DatabaseHandler {
 			client = new MongoClient(ConfigHandler.getMongodbServer(),
 					ConfigHandler.getMongodbPort());
 			DB db = client.getDB(ConfigHandler.getMongodbName());
-			// boolean auth = db.authenticate(myUserName, myPassword);
 			DBCollection coll = db.getCollection(Constants.USER_LOGS);
 			DBObject updatedValue = new BasicDBObject();
 			updatedValue.put(Constants.ISHANDLED_FIELD, true);
@@ -159,7 +158,6 @@ public class DatabaseHandler {
 					ConfigHandler.getMysqlPath(),
 					ConfigHandler.getMysqlUsername(),
 					ConfigHandler.getMysqlPassword());
-
 			stmt = conn.createStatement();
 			result = stmt.executeQuery("SELECT * from "
 					+ Constants.TABLE_RELEVANCY_NAME);
