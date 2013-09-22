@@ -9,6 +9,8 @@ import java.util.logging.FileHandler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.zhidaoba.emergency.EmergencyConfigHandler;
+
 /**
  * 读取系统配置信息的类
  * 从文件中读取
@@ -104,7 +106,7 @@ public class ConfigHandler {
 					DEFAULT_MONGODB_DBNAME);
 
 			LOG_DIR = prop.getProperty(LOG_DIR_STRING, DEFAULT_LOG_DIR);
-			LOG_FILE = prop.getProperty(LOG_FILE_STRING, DEFAULT_LOG_FILE);
+//			LOG_FILE = prop.getProperty(LOG_FILE_STRING, DEFAULT_LOG_FILE);
 			LOG_QUEUE_SIZE = Integer.valueOf(prop.getProperty(LOG_QUEUE_SIZE_STRING, Integer.toString(DEFAULT_LOG_QUEUE_SIZE)));
 			
 			REV_LOG_LAST_READ_TIME = Long.valueOf(prop.getProperty(
@@ -119,6 +121,13 @@ public class ConfigHandler {
 			REV_LOG_LAST_READ_LINE_NUMBER = Integer.valueOf(prop.getProperty(
 					REV_LOG_LAST_READ_LINE_NUMBER_STRING,
 					Integer.toString(DEFAULT_REV_LOG_LAST_READ_LINE_NUMBER)));
+			if (LOG_FILE == null
+					|| !(LOG_FILE.equals(prop.getProperty(LOG_FILE_STRING,
+							DEFAULT_LOG_FILE)))) {
+				// System.out.println(LOG_FILE);
+				LOG_FILE = prop.getProperty(LOG_FILE_STRING, DEFAULT_LOG_FILE);
+				addLogFile();
+			}
 
 		} catch (Exception e) {
 			MYSQL_PATH = DEFAULT_MYSQL_PATH;
@@ -134,19 +143,7 @@ public class ConfigHandler {
 			REV_LOG_LAST_READ_FILE_NAME = "";
 			REV_LOG_LAST_READ_LINE_NUMBER = 0;
 			e.printStackTrace();
-		} finally {
-			// 创建存储日志的文件夹
-			File logFile = null;
-			try {
-				logFile = new File(LOG_DIR);
-				if (!(logFile.exists()) && !(logFile.isDirectory())) {
-					logFile.mkdirs();
-				}
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-
+		} 
 		try {
 			// 创建日志文件
 			LOGGER.setLevel(Level.INFO);
@@ -159,6 +156,31 @@ public class ConfigHandler {
 
 	}
 
+	public static void addLogFile() {
+		try {
+			LOGGER.setLevel(Level.INFO);
+			mkdir(LOG_FILE);
+			FileHandler logFile = new FileHandler(LOG_FILE + "."
+					+ System.currentTimeMillis());
+			LOGGER.addHandler(logFile);
+			EmergencyConfigHandler.getLogger().info("Add New Log File success!");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public static void mkdir(String log_file) {
+		String dirname = log_file.substring(0, log_file.lastIndexOf("/"));
+		try {
+			File file = new File(dirname);
+			if (!file.exists()) {
+				file.mkdirs();
+				System.out.println("create new log directory success!");
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 	// 保存参数到配置文件
 	public static void save() {
 		Properties prop = new Properties();

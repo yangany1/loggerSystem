@@ -39,7 +39,7 @@ public class CollectLog {
 		}
 		changeList.clear();
 		getLogFromLogFile();
-		writeLogtoMongo();
+		writeLogtoMongo(); 
 	}
 
 	/**
@@ -166,7 +166,8 @@ public class CollectLog {
 		ConfigHandler.setRevLogLastReadLineNumber(lastReadLineNumber);
 		System.out.println("save property");
 		System.gc();
-		// ConfigHandler.save();
+		ConfigHandler.save();
+		System.out.println("save end");
 	}
 
 	public static void writeLogtoMongo() {

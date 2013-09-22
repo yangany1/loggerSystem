@@ -46,7 +46,7 @@ public class RelevancyObject {
 	}
 
 	public String getDialog_id() {
-		return this.getDialog_id();
+		return this.dialog_id;
 	}
 
 	public String toString() {

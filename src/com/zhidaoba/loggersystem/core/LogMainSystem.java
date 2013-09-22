@@ -21,8 +21,8 @@ public class LogMainSystem {
 			//更新标签相似度
 			new RelevancyThread().run();
 			//紧急库排序
-			EmergencyConfigHandler.load();
-			new EmergencySortThread().updateRank();
+//			EmergencyConfigHandler.load();
+//			new EmergencySortThread().updateRank();
 		}
 		catch(Exception e){
 			e.printStackTrace();

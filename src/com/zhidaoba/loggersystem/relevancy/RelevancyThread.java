@@ -153,9 +153,11 @@ public class RelevancyThread {
 			case AGREE:
 				ConfigHandler.getLogger().info("AGREE");
 				//此处是针对log处理的
+				if(!log.getDialog_id().equals("")){
 				content.setDialog_id(log.getDialog_id());
 				this.updateKnowledge(UserAction.AGREE, log.getUserId(), 0.5f,
 						content);
+				}
 				break;
 			case DETAIL:
 				ConfigHandler.getLogger().info("DETAIL");
@@ -362,6 +364,9 @@ public class RelevancyThread {
 	 */
 	public boolean acceptChatEvent(RelevancyObject log, ContentParser content) {
 		//此处针对日志进行的处理
+		if(log.getDialog_id().equals("")){
+			return false;
+		}
 		content.setDialog_id(log.getDialog_id());
 		try {
 			Calendar current = Calendar.getInstance();
