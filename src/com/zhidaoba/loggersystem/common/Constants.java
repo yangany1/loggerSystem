@@ -1,7 +1,7 @@
 package com.zhidaoba.loggersystem.common;
 
 public class Constants {
-	public final static int LOG_READ_FREQUENCY = 1000 * 60;
+	public final static int LOG_READ_FREQUENCY = 1000 * 60*60*6;
 
 	public final static String USER_ID = "user_id";
 	public final static String LOGTIME_FIELD = "logtime";
@@ -91,5 +91,12 @@ public class Constants {
   	public final static int MILLSECONDSTOMINUTE=60*1000;
   	
   	//循环更新时间（毫秒）
-  	public final static int REPEATIME=60*1000;
+  	public final static int REPEATIME=60*1000*3;
+
+
+    public final static int TYPE_SCHOOL=1;
+    public final static int TYPE_MAJOR=2;
+    public final static int TYPE_COMPANY=3;
+    public final static int TYPE_POSITION=4;
+
 }

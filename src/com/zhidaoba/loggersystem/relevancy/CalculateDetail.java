@@ -82,7 +82,11 @@ public class CalculateDetail {
 	 * @return
 	 */
 	public double getConsumationTotalScore(String dialogid) {
-		return 2 * getContribution(dialogid) - getComsumationScore(dialogid);
+        double consumeValue= 2 * getContribution(dialogid) - getComsumationScore(dialogid);
+        if(consumeValue<0){
+            consumeValue=0;
+        }
+		return consumeValue;
 	}
 
 	/**

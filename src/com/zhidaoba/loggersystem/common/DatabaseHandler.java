@@ -31,6 +31,8 @@ import com.zhidaoba.loggersystem.relevancy.RelevancyObject;
  */
 public class DatabaseHandler {
 
+	public static final String TOOL_DEVELOP_DATABASE_PATH = "jdbc:mysql://zhidao.ba/zhidaoba_tool_development?useUnicode=true&characterEncoding=utf8";
+
 	/**
 	 * 将日志数据写入mongo数据库
 	 * 
@@ -50,7 +52,8 @@ public class DatabaseHandler {
 						.append(Constants.LOGTIME_FIELD, content.getTime())
 						.append(Constants.ACTION_FIELD, content.getAction())
 						.append(Constants.CONTENT_FIELD, content.getContent())
-						.append(Constants.DIALOG_ID_FIELD, content.getDialog_id())
+						.append(Constants.DIALOG_ID_FIELD,
+								content.getDialog_id())
 						.append(Constants.ISHANDLED_FIELD, false);
 				coll.insert(doc);
 				changeList.remove(content);
@@ -82,7 +85,9 @@ public class DatabaseHandler {
 			DBCollection coll = db.getCollection(Constants.USER_LOGS);
 			DBObject query = new BasicDBObject();
 			query.put(Constants.ISHANDLED_LOG, false);
-			cursor = coll.find(query);
+			DBObject sorted = new BasicDBObject();
+			sorted.put("logtime", 1);
+			cursor = coll.find(query).sort(sorted);
 			while (cursor.hasNext()) {
 				DBObject obj = cursor.next();
 				rlist.add(obj);
@@ -208,22 +213,20 @@ public class DatabaseHandler {
 		MongoClient client = null;
 		DBCursor cursor = null;
 		try {
-			client = new MongoClient(ConfigHandler.getMongodbServer(),
-					ConfigHandler.getMongodbPort());
-			DB db = client.getDB(ConfigHandler.getMongodbName());
+			// client = new MongoClient(ConfigHandler.getMongodbServer(),
+			// ConfigHandler.getMongodbPort());
+			// DB db = client.getDB(ConfigHandler.getMongodbName());
+			client = new MongoClient("localhost", 27017);
+			DB db = client.getDB("development");
 			// boolean auth = db.authenticate(myUserName, myPassword);
-			DBCollection coll = db
-					.getCollection(Constants.CONTRIBUTION_COLLECTION);
-			BasicDBObject query = new BasicDBObject(Constants.USER_ID, userid);
+			DBCollection coll = db.getCollection("users");
+			BasicDBObject query = new BasicDBObject("_id", new ObjectId(userid));
 			cursor = coll.find(query);
 			if (cursor.hasNext()) {
 				DBObject obj = cursor.next();
 				DBObject updatedValue = new BasicDBObject();
-				updatedValue
-						.put(Constants.VALUE_FIELD_IN_CONTRIBUTION_COLLECTION,
-								(Double) obj
-										.get(Constants.VALUE_FIELD_IN_CONTRIBUTION_COLLECTION)
-										+ value);
+				updatedValue.put("contribution",
+						(Double) obj.get("contribution") + value);
 				DBObject updateSetValue = new BasicDBObject("$set",
 						updatedValue);
 				coll.update(obj, updateSetValue);
@@ -258,29 +261,25 @@ public class DatabaseHandler {
 		MongoClient client = null;
 		DBCursor cursor = null;
 		try {
-			client = new MongoClient(ConfigHandler.getMongodbServer(),
-					ConfigHandler.getMongodbPort());
-			DB db = client.getDB(ConfigHandler.getMongodbName());
-			DBCollection coll = db
-					.getCollection(Constants.CONSUMATION_COLLECTION);
-			BasicDBObject query = new BasicDBObject(Constants.USER_ID, userid);
+			client = new MongoClient("localhost", 27017);
+			DB db = client.getDB("development");
+			DBCollection coll = db.getCollection("users");
+			BasicDBObject query = new BasicDBObject("_id", new ObjectId(userid));
 			cursor = coll.find(query);
 			if (cursor.hasNext()) {
 				DBObject obj = cursor.next();
 				DBObject updatedValue = new BasicDBObject();
-				updatedValue
-						.put(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION,
-								(Double) obj
-										.get(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION)
-										+ value);
+				updatedValue.put("consumption", (Double) obj.get("consumption")
+						+ value);
 				DBObject updateSetValue = new BasicDBObject("$set",
 						updatedValue);
 				coll.update(obj, updateSetValue);
 			} else {
-				BasicDBObject doc = new BasicDBObject(Constants.USER_ID, userid)
-						.append(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION,
-								value);
-				coll.insert(doc);
+				// BasicDBObject doc = new BasicDBObject(Constants.USER_ID,
+				// userid)
+				// .append(Constants.VALUE_FIELD_IN_CONSUMATION_COLLECTION,
+				// value);
+				// coll.insert(doc);
 			}
 
 		} catch (UnknownHostException e) {
@@ -298,149 +297,408 @@ public class DatabaseHandler {
 
 	/**
 	 * 从mongodb中查询某个字段的值
+	 * 
 	 * @param colname
 	 * @param field
 	 * @param value
 	 * @return
 	 */
-	public static DBObject getItemFromMongoDB(String collectionname, String field, String value) {
-        MongoClient client = null;
-        DBCursor cursor = null;
-        try {
-            ConfigHandler.getLogger().info("mongo sever=" + ConfigHandler.getMongodbServer() + ",mongo port=" + ConfigHandler.getMongodbPort() + ",name=" + ConfigHandler.getMongodbName());
-            client = new MongoClient(
-                    ConfigHandler.getMongodbServer(),
-                    ConfigHandler.getMongodbPort());
-            DB db = client.getDB(ConfigHandler.getMongodbName());
-            ConfigHandler.getLogger().info("collectionname=" + collectionname + ",field=" + field + ",value=" + value);
-            DBCollection coll = db.getCollection(collectionname);
-            BasicDBObject query = null;
-            if (field == "_id") {
-                query = new BasicDBObject(field, new ObjectId(value));
-            } else {
-                query = new BasicDBObject(field, value);
-            }
-            cursor = coll.find(query);
-            if (cursor.hasNext()) {
-                DBObject object = cursor.next();
-                cursor.close();
-                client.close();
-                return object;
-            } else {
-                ConfigHandler.getLogger().info("cannot find dialog_id");
-                return null;
-            }
+	public static DBObject getItemFromMongoDB(String collectionname,
+			String field, String value) {
+		MongoClient client = null;
+		DBCursor cursor = null;
+		try {
+			ConfigHandler.getLogger().info(
+					"mongo sever=" + ConfigHandler.getMongodbServer()
+							+ ",mongo port=" + ConfigHandler.getMongodbPort()
+							+ ",name=" + ConfigHandler.getMongodbName());
+			client = new MongoClient(ConfigHandler.getMongodbServer(),
+					ConfigHandler.getMongodbPort());
+			DB db = client.getDB(ConfigHandler.getMongodbName());
+			ConfigHandler.getLogger().info(
+					"collectionname=" + collectionname + ",field=" + field
+							+ ",value=" + value);
+			DBCollection coll = db.getCollection(collectionname);
+			BasicDBObject query = null;
+			if (field == "_id") {
+				query = new BasicDBObject(field, new ObjectId(value));
+			} else {
+				query = new BasicDBObject(field, value);
+			}
+			cursor = coll.find(query);
+			if (cursor.hasNext()) {
+				DBObject object = cursor.next();
+				cursor.close();
+				client.close();
+				return object;
+			} else {
+				ConfigHandler.getLogger().info("cannot find dialog_id");
+				return null;
+			}
 
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-            if (client != null) {
-                client.close();
-            }
-        }
-        return null;
-    }
-	
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} finally {
+			if (cursor != null) {
+				cursor.close();
+			}
+			if (client != null) {
+				client.close();
+			}
+		}
+		return null;
+	}
+
 	/**
 	 * 从relationship中找到与from相似的词赋予相似度
+	 * 
 	 * @param from
 	 * @return
 	 */
 	public static ArrayList<String> getRelationshipsFromMysql(String from) {
-        ArrayList<String> words = new ArrayList<String>();
-        ResultSet result = null;
-        Statement stmt = null;
-        try {
-            Class.forName("com.mysql.jdbc.Driver");
-            Connection conn = DriverManager.getConnection(
-                    ConfigHandler.getMysqlPath(),
-                    ConfigHandler.getMysqlUsername(),
-                    ConfigHandler.getMysqlPassword());
-            stmt = conn.createStatement();
+		ArrayList<String> words = new ArrayList<String>();
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					ConfigHandler.getMysqlPath(),
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
 
-            String sqlstmt = "SELECT " + "`to`"
-                    + " from " + Constants.TABLE_RELATIONSHIPS_NAME
-                    + " where `from` = " + "\"" + from + "\" ORDER BY " + Constants.VALUE_FIELD + " DESC limit 100";
-            ConfigHandler.getLogger().info("sql=" + sqlstmt);
-            result = stmt.executeQuery(sqlstmt);
+			String sqlstmt = "SELECT " + "`to`" + " from "
+					+ Constants.TABLE_RELATIONSHIPS_NAME + " where `from` = "
+					+ "\"" + from + "\" ORDER BY " + Constants.VALUE_FIELD
+					+ " DESC limit 100";
+			ConfigHandler.getLogger().info("sql=" + sqlstmt);
+			result = stmt.executeQuery(sqlstmt);
 
-            while (result != null && result.next()) {
-                words.add(result.getString(Constants.TO_FIELD));
-            }
-            ConfigHandler.getLogger().info("words size=" + words.size());
-            conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        } finally {
-            if (result != null) {
-                try {
-                    result.close();
-                } catch (SQLException sqlEx) {
-                }
-                result = null;
-            }
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException sqlEx) {
-                }
-                stmt = null;
-            }
-        }
-        return words;
+			while (result != null && result.next()) {
+				words.add(result.getString(Constants.TO_FIELD));
+			}
+			ConfigHandler.getLogger().info("words size=" + words.size());
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return words;
 
-    }
-	
+	}
+
 	/**
 	 * 更新专家与标签的相似度
+	 * 
 	 * @param user_id
 	 * @param tags
 	 * @param relevancies
 	 */
-	 public static boolean
-	    updateRelevancyToMysql(String user_id, String[] tags, float[] relevancies) {
-	        System.out.println("update relevancy in mysql length=" + tags.length);
-	        Connection conn = null;
-	        PreparedStatement stmt = null;
-	        try {
-	            Class.forName("com.mysql.jdbc.Driver");
-	            conn = DriverManager.getConnection(
-	                    ConfigHandler.getMysqlPath(),
-	                    ConfigHandler.getMysqlUsername(),
-	                    ConfigHandler.getMysqlPassword());
-	            for (int i = 0; i < tags.length; i++) {
-	                String update = "insert into " +Constants.TABLE_RELEVANCY_NAME + " values (?,?,?) on duplicate key update relevancy=?";
-	                ConfigHandler.getLogger().info("update sentence=" + update);
-	                stmt = conn.prepareStatement(update);
-	                stmt.setString(2, user_id);
-	                stmt.setString(1, tags[i]);
-	                stmt.setFloat(3, relevancies[i]);
-	                stmt.setFloat(4, relevancies[i]);
-	                boolean flag = stmt.execute();
-	                ConfigHandler.getLogger().info("update relevancy success useid=" + user_id + " tags id=" + tags[i] + " rele=" + relevancies[i]);
-	            }
-	            conn.close();
-	        } catch (Exception e) {
-	            e.printStackTrace();
-	        } finally {
-	            try {
-	                if (stmt != null) {
-	                    stmt.close();
-	                }
-	                if (conn != null) {
-	                    conn.close();
-	                }
+	public static boolean updateRelevancyToMysql(String user_id, String[] tags,
+			float[] relevancies) {
+		System.out.println("update relevancy in mysql length=" + tags.length);
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			conn = DriverManager.getConnection(ConfigHandler.getMysqlPath(),
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			for (int i = 0; i < tags.length; i++) {
+				String update = "insert into " + Constants.TABLE_RELEVANCY_NAME
+						+ " values (?,?,?) on duplicate key update relevancy=?";
+				ConfigHandler.getLogger().info("update sentence=" + update);
+				stmt = conn.prepareStatement(update);
+				stmt.setString(2, user_id);
+				stmt.setString(1, tags[i]);
+				stmt.setFloat(3, relevancies[i]);
+				stmt.setFloat(4, relevancies[i]);
+				boolean flag = stmt.execute();
+				ConfigHandler.getLogger().info(
+						"update relevancy success useid=" + user_id
+								+ " tags id=" + tags[i] + " rele="
+								+ relevancies[i]);
+			}
+			conn.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+				if (conn != null) {
+					conn.close();
+				}
 
-	            } catch (Exception e) {
-	                e.printStackTrace();
-	            }
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
-	        }
-	        return true;
-	    }
+		}
+		return true;
+	}
+
+	/**
+	 * 查询资料是否在标准库 不存在返回-1 否则返回1
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public static int searchFromProfileStandard(String name, int actionType) {
+		int type = -1;
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
+
+			String sqlstmt = "SELECT * from profile_std_words where content='"
+					+ name + "' and category=" + actionType;
+			ConfigHandler.getLogger().info("sql=" + sqlstmt);
+			result = stmt.executeQuery(sqlstmt);
+			if (result.next()) {
+				type = 1;
+
+			}
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return type;
+	}
+
+	/**
+	 * 查询资料是否在参考库 不存在返回-1 否则返回标准库的id
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public static int searchFromProfileRef(String name, int actionType) {
+		int type = -1;
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
+
+			String sqlstmt = "SELECT * from profile_ref_words where content='"
+					+ name + "'";
+			ConfigHandler.getLogger().info("sql=" + sqlstmt);
+			result = stmt.executeQuery(sqlstmt);
+			if (result.next()) {
+				type = result.getInt("profile_std_word_id");
+			}
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return type;
+	}
+
+	/**
+	 * 查询资料是否在空值库 不存在返回-1 否则返回1
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public static int searchFromProfileNull(String name, int actionType) {
+		int type = -1;
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
+
+			String sqlstmt = "SELECT * from profile_null_words where content='"
+					+ name + "'";
+			ConfigHandler.getLogger().info("sql=" + sqlstmt);
+			result = stmt.executeQuery(sqlstmt);
+			if (result.next()) {
+				type = 1;
+			}
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return type;
+	}
+
+	/**
+	 * 添加新词到资料库
+	 * 
+	 * @param name
+	 * @param actionType
+	 * @return
+	 */
+	public static boolean addToProfileNewWord(String name, int actionType) {
+		Connection conn = null;
+		ResultSet result = null;
+		PreparedStatement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			conn = DriverManager.getConnection(TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+
+			String insert = "insert into newword(name,actiontype) values(?,?)";
+			stmt = conn.prepareStatement(insert);
+			stmt.setString(1, name);
+			stmt.setInt(2, actionType);
+			stmt.execute();
+			stmt.close();
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		ConfigHandler.getLogger().info("addToProfileNewWord success=" + name);
+		return true;
+	}
+
+	/**
+	 * 添加新词到资料的新词库
+	 * 
+	 * @param user_id
+	 * @param tags
+	 * @param relevancies
+	 */
+	public static boolean addNewWordToProfileNull(String user_id, String name,
+			int actionType) {
+		System.out.println("write to profile null "+name);
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			conn = DriverManager.getConnection(TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			String update = "insert into profile_new_words(content,category,user_id) values (?,?,?) ";
+			ConfigHandler.getLogger().info("update sentence=" + update);
+			stmt = conn.prepareStatement(update);
+			stmt.setString(1, name);
+			stmt.setInt(2, actionType);
+			stmt.setString(3, user_id);
+			boolean flag = stmt.execute();
+			conn.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+				if (conn != null) {
+					conn.close();
+				}
+
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+		}
+		return true;
+	}
+	 public static void main(String[] args){
+		 addNewWordToProfileNull("523fbff9e974f941d7012762","name",1);
+	 }
 }

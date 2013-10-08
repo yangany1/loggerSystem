@@ -20,7 +20,8 @@ public enum UserAction {
     PERSONAL_INFO_ADD_COMPANY("personal_info_add_company", 17),
     PERSONAL_INFO_ADD_TITLE("personal_info_add_title", 18),
     ADD_TAG("/v1.1/users/add_tags", 19),
-    CLICK("click", 20), NOT_USE_NOW("null", 21);
+    REGISTER_PROFILE("/users/register_profile",20),
+    CLICK("click", 21), NOT_USE_NOW("null", 22);
 
     private String name;
     private int index;

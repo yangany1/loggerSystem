@@ -31,7 +31,8 @@ public class RelevancyThread {
 		DatabaseHandler.getRelevancyFromMysql(expertTagRelevancy);
 		ConfigHandler.getLogger().info(
 				"expertTag size=" + expertTagRelevancy.size());
-		cal = new CalculateDetail(dialogInfos,userAskedTimesToday,userAnsweredTimesToday);
+		cal = new CalculateDetail(dialogInfos, userAskedTimesToday,
+				userAnsweredTimesToday);
 	}
 
 	/**
@@ -65,7 +66,7 @@ public class RelevancyThread {
 	 * 对每个log记录进行分析操作
 	 * 
 	 * @return
-	 */ 
+	 */
 	private boolean analysisFromMongoDB() {
 		List<DBObject> logList = DatabaseHandler
 				.getRelevancyObjectsFromMongoDB();
@@ -77,6 +78,7 @@ public class RelevancyThread {
 					(String) obj.get(Constants.LOG_CONTENT_FIELD),
 					(String) obj.get(Constants.LOG_DIALOG_ID_FIELD));
 			try {
+				ConfigHandler.getLogger().info("logtime=" + r.getTime());
 				analysis(r);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
@@ -107,7 +109,9 @@ public class RelevancyThread {
 			calendar.setTimeInMillis(log.getTime());
 		}
 		try {
-			ConfigHandler.getLogger().info("log content=" + log.getContent());
+			ConfigHandler.getLogger().info(
+					"log content=" + log.getContent() + "userid="
+							+ log.getUserId());
 			ContentParser content = gson.fromJson(log.getContent(),
 					ContentParser.class);
 			switch (log.actionType()) {
@@ -152,11 +156,11 @@ public class RelevancyThread {
 				break;
 			case AGREE:
 				ConfigHandler.getLogger().info("AGREE");
-				//此处是针对log处理的
-				if(!log.getDialog_id().equals("")){
-				content.setDialog_id(log.getDialog_id());
-				this.updateKnowledge(UserAction.AGREE, log.getUserId(), 0.5f,
-						content);
+				// 此处是针对log处理的
+				if (!log.getDialog_id().equals("")) {
+					content.setDialog_id(log.getDialog_id());
+					this.updateKnowledge(UserAction.AGREE, log.getUserId(),
+							0.5f, content);
 				}
 				break;
 			case DETAIL:
@@ -168,6 +172,10 @@ public class RelevancyThread {
 				ConfigHandler.getLogger().info("COMMENT");
 				this.updateKnowledge(UserAction.COMMENT, log.getUserId(), 0.8f,
 						content);
+				break;
+			case REGISTER_PROFILE:
+				ConfigHandler.getLogger().info("REGISTER_PROFILE");
+				this.dealWithRegisterProfile(log, content);
 			default:
 				break;
 			}
@@ -179,6 +187,80 @@ public class RelevancyThread {
 	}
 
 	/**
+	 * 处理用户刚注册时填写的信息，增加知识量
+	 * 
+	 * @param userid
+	 * @param content
+	 * @return
+	 */
+	public boolean dealWithRegisterProfile(RelevancyObject log,
+			ContentParser content) {
+		if (content.getCollegeName() != null && content.getCollegeName() != "") {
+			updateProfileValue(log, content.getCollegeName(),
+					Constants.TYPE_SCHOOL);
+		}
+		if (content.getMajorName() != null && content.getMajorName() != "") {
+			updateProfileValue(log, content.getMajorName(),
+					Constants.TYPE_MAJOR);
+		}
+		if (content.getPositionTitle() != null
+				&& content.getPositionTitle() != "") {
+			updateProfileValue(log, content.getPositionTitle(),
+					Constants.TYPE_POSITION);
+		}
+		if (content.getCompanyName() != null && content.getCompanyName() != "") {
+			updateProfileValue(log, content.getCompanyName(),
+					Constants.TYPE_COMPANY);
+		}
+
+		return true;
+	}
+
+	/**
+	 * 更新某个资料的知识量
+	 * 
+	 * @param log
+	 * @param name
+	 * @return
+	 */
+	public boolean updateProfileValue(RelevancyObject log, String name,
+			int actionType) {
+		//查询标准库
+		System.out.println("update profile =" + name + "  type is:"
+				+ actionType);
+		int type = DatabaseHandler.searchFromProfileStandard(name, actionType);
+
+		//存在标准库，更新权值
+		if (type == 1) {
+			System.out.println(name+" exist");
+//			DatabaseHandler.addToProfileNewWord(name, actionType);
+		}
+		//不存在标准库，查看参考库
+		else {
+			int r=DatabaseHandler.searchFromProfileRef(name,actionType);
+			//存在参考库，返回标准库词的id
+		    if(r!=-1){
+		    	System.out.println(name+" exist in ref table "+r);
+		    }
+		    //不存在参考库，查看空值库
+		    else{
+		    	r=DatabaseHandler.searchFromProfileNull(name, actionType);
+		    	//在空值库，忽略
+		    	if(r==1){
+		    		return true;
+		    	}
+		    	//不在空值库，加入新词库
+		    	else{
+		    		DatabaseHandler.addNewWordToProfileNull(log.getUserId(), name, actionType);
+		    	}
+		    }
+		    	
+		}
+
+		return true;
+	}
+
+	/**
 	 * 评价的日志分析
 	 * 
 	 * @param log
@@ -186,6 +268,11 @@ public class RelevancyThread {
 	 * @return
 	 */
 	public boolean evaluationEvent(RelevancyObject log, ContentParser content) {
+		if (log.getUserId() == null)
+			return false;
+		System.out.println(log.getUserId());
+		System.out.println("test dialog_id=" + content.getDialogID());
+		this.dialogInfos.get(content.getDialogID()).get(Constants.DIALOG_ASKER);
 		// 对于提问者
 		if (log.getUserId().equals(
 				this.dialogInfos.get(content.getDialogID()).get(
@@ -256,7 +343,7 @@ public class RelevancyThread {
 	 */
 	public boolean createQuestionEvent(RelevancyObject log,
 			ContentParser content) {
-		//此处是针对log处理的
+		// 此处是针对log处理的
 		content.setDialog_id(log.getDialog_id());
 		// 已经分析过这个dialog
 		if (this.dialogInfos.containsKey(content.getDialogID())) {
@@ -280,10 +367,13 @@ public class RelevancyThread {
 				.get(Calendar.DAY_OF_MONTH)) {
 			clearUserAskQuestion(log.getUserId(), content.getDialogID());
 			clearUserAnswerQuestion(log.getUserId(), content.getDialogID());
-			calendar=current;
-		}else{
+			calendar = current;
+		} else {
 			updateUserAskQuestion(log.getUserId(), content.getDialogID());
 		}
+		ConfigHandler.getLogger().info(
+				"create question set question askid=" + log.getUserId()
+						+ ",dialogid=" + content.getDialogID());
 		// 记录提问者的id
 		this.dialogInfos.get(content.getDialogID()).set(Constants.DIALOG_ASKER,
 				log.getUserId());
@@ -301,10 +391,10 @@ public class RelevancyThread {
 				Constants.DIALOG_ANSWER_WORD_LENGTH, 0);
 		// 记录提问者的响应时间
 		this.dialogInfos.get(content.getDialogID()).set(
-				Constants.DIALOG_ASK_TIMESTAMP, 0);
+				Constants.DIALOG_ASK_TIMESTAMP, new Long(0));
 		// 记录回答者的响应时间
 		this.dialogInfos.get(content.getDialogID()).set(
-				Constants.DIALOG_ANSWER_TIMESTAMP, 0);
+				Constants.DIALOG_ANSWER_TIMESTAMP, new Long(0));
 		// 记录回答者第一次回答的时间
 		this.dialogInfos.get(content.getDialogID()).set(
 				Constants.DIALOG_FIRST_ANSWER_TIME, log.getTime());
@@ -363,8 +453,8 @@ public class RelevancyThread {
 	 * @return
 	 */
 	public boolean acceptChatEvent(RelevancyObject log, ContentParser content) {
-		//此处针对日志进行的处理
-		if(log.getDialog_id().equals("")){
+		// 此处针对日志进行的处理
+		if (log.getDialog_id().equals("")) {
 			return false;
 		}
 		content.setDialog_id(log.getDialog_id());
@@ -376,8 +466,8 @@ public class RelevancyThread {
 					.get(Calendar.DAY_OF_MONTH)) {
 				clearUserAskQuestion(log.getUserId(), content.getDialogID());
 				clearUserAnswerQuestion(log.getUserId(), content.getDialogID());
-				calendar=current;
-			}else{
+				calendar = current;
+			} else {
 				updateUserAnswerQuestion(log.getUserId(), content.getDialogID());
 			}
 			this.dialogInfos.get(content.getDialogID()).set(
@@ -426,7 +516,7 @@ public class RelevancyThread {
 			// 提问者回答的平均响应时间
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ASK_TIMESTAMP,
-					(Integer) this.dialogInfos.get(content.getDialogID()).get(
+					(Long) this.dialogInfos.get(content.getDialogID()).get(
 							Constants.DIALOG_ASK_TIMESTAMP)
 							+ diff);
 		}
@@ -451,7 +541,7 @@ public class RelevancyThread {
 			// 设置回答的平均响应时间
 			this.dialogInfos.get(content.getDialogID()).set(
 					Constants.DIALOG_ANSWER_TIMESTAMP,
-					(Integer) this.dialogInfos.get(content.getDialogID()).get(
+					(Long) this.dialogInfos.get(content.getDialogID()).get(
 							Constants.DIALOG_ANSWER_TIMESTAMP)
 							+ diff);
 		}
@@ -466,8 +556,11 @@ public class RelevancyThread {
 	 * @return
 	 */
 	public boolean LogoutEvent(RelevancyObject log, ContentParser content) {
-		//此处是针对log处理的
+		// 此处是针对log处理的
 		content.setDialog_id(log.getDialog_id());
+		if (log.getDialog_id() == null) {
+			return false;
+		}
 		// 对于提问者,增加暂停次数
 		if (log.getUserId().equals(
 				log.getUserId().equals(
@@ -665,6 +758,7 @@ public class RelevancyThread {
 
 	/**
 	 * 清空userAskedTimesToday数据结构，表示新的一天
+	 * 
 	 * @param userid
 	 * @param dialogid
 	 * @return
@@ -679,6 +773,7 @@ public class RelevancyThread {
 
 	/**
 	 * 清空userAnsweredTimesToday数据结构，表示新的一天
+	 * 
 	 * @param userid
 	 * @param dialogid
 	 * @return
@@ -690,45 +785,45 @@ public class RelevancyThread {
 		userAnsweredTimesToday.put(userid, map);
 		return true;
 	}
-	
+
 	/**
 	 * 更新userAskedTimesToday
+	 * 
 	 * @param userid
 	 * @param dialogid
 	 * @return
 	 */
-	private boolean updateUserAskQuestion(String userid,String dialogid){
-		//如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
-		if(!userAskedTimesToday.containsKey(userid)){
+	private boolean updateUserAskQuestion(String userid, String dialogid) {
+		// 如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
+		if (!userAskedTimesToday.containsKey(userid)) {
 			Map<String, Integer> map = new HashMap<String, Integer>();
 			map.put(dialogid, 1);
 			userAskedTimesToday.put(userid, map);
-		}
-		else{
-			//得到用户当天提问的问题数，然后将此问题加1
-			int currentNum=userAskedTimesToday.get(userid).size();
-			userAskedTimesToday.get(userid).put(dialogid, currentNum+1);
+		} else {
+			// 得到用户当天提问的问题数，然后将此问题加1
+			int currentNum = userAskedTimesToday.get(userid).size();
+			userAskedTimesToday.get(userid).put(dialogid, currentNum + 1);
 		}
 		return true;
 	}
-	
+
 	/**
 	 * 更新userAnsweredTimesToday
+	 * 
 	 * @param userid
 	 * @param dialogid
 	 * @return
 	 */
-	private boolean updateUserAnswerQuestion(String userid,String dialogid){
-		//如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
-		if(!userAnsweredTimesToday.containsKey(userid)){
+	private boolean updateUserAnswerQuestion(String userid, String dialogid) {
+		// 如果map里没有这个用户，将这个问题设置为该用户当天提问的第一个问题
+		if (!userAnsweredTimesToday.containsKey(userid)) {
 			Map<String, Integer> map = new HashMap<String, Integer>();
 			map.put(dialogid, 1);
 			userAnsweredTimesToday.put(userid, map);
-		}
-		else{
-			//得到用户当天提问的问题数，然后将此问题加1
-			int currentNum=userAnsweredTimesToday.get(userid).size();
-			userAnsweredTimesToday.get(userid).put(dialogid, currentNum+1);
+		} else {
+			// 得到用户当天提问的问题数，然后将此问题加1
+			int currentNum = userAnsweredTimesToday.get(userid).size();
+			userAnsweredTimesToday.get(userid).put(dialogid, currentNum + 1);
 		}
 		return true;
 	}

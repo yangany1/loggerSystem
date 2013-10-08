@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE log SYSTEM "logger.dtd">
+<log>
+<record>
+  <date>2013-09-21T13:06:00</date>
+  <millis>1379739960955</millis>
+  <sequence>3</sequence>
+  <logger>Emergency.class</logger>
+  <level>INFO</level>
+  <class>com.zhidaoba.emergency.EmergencyConfigHandler</class>
+  <method>addLogFile</method>
+  <thread>10</thread>
+  <message>Add New Log File success!</message>
+</record>
+<record>
+  <date>2013-09-21T13:06:01</date>
+  <millis>1379739961281</millis>
+  <sequence>4</sequence>
+  <logger>Emergency.class</logger>
+  <level>WARNING</level>
+  <class>com.zhidaoba.emergency.EmergencySortThread</class>
+  <method>init</method>
+  <thread>11</thread>
+  <message>question_id=523d2692e974f90acf006249更新数据库成功！</message>
+</record>
+<record>
+  <date>2013-09-21T13:07:01</date>
+  <millis>1379740021063</millis>
+  <sequence>5</sequence>
+  <logger>Emergency.class</logger>
+  <level>WARNING</level>
+  <class>com.zhidaoba.emergency.EmergencySortThread</class>
+  <method>init</method>
+  <thread>11</thread>
+  <message>question_id=523d2692e974f90acf006249更新数据库成功！</message>
+</record>
