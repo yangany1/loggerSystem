@@ -12,6 +12,40 @@ the request begin at 2013-09-23 19:32:01
 the uniq id is 1379935921933 c7348093ca06cb98a208428449eff326
 visit: /:version/users/register_profile(.:format)
 method:POST
-params:{"major_name":"jsjsjs","token_id":"5240267ee974f941d7024adf","college_name":"sjtu","position_title":"baudy","company_name":"hddh","graduate_year":"2012","version":"v1","format":"json"}
+params:{"major_name":"cs","token_id":"5240267ee974f941d7024adf","college_name":"sjtu","position_title":"manager","graduate_year":"2012","version":"v1","format":"json"}
 current user id is:5240267ee974f941d7024ad9
 the response over at 2013-09-23 19:32:02
+
+the request begin at 2013-10-10 13:46:38
+the uniq id is 1381383998175 24cc7ea85f503239f4065e2d6d967545
+visit: /:version/users/update_company_info(.:format)
+method:POST
+params:{"token_id":"52563bdbe974f92d01055529","position_title":"市场经理","company_name":"上海讯悉信息科技有限","version":"v1","format":"json"}
+current user id is:523ec9aae974f9285900402d
+the response over at 2013-10-10 13:46:38
+
+
+the request begin at 2013-10-10 13:46:43
+the uniq id is 1381384003661 677d3451f033b638172d54ff4c1d17ef
+visit: /:version/users/update_company_info(.:format)
+method:POST
+params:{"token_id":"52563bdbe974f92d01055529","position_title":"市场","company_name":"上海讯悉信息科技有限","version":"v1","format":"json"}
+current user id is:523ec9aae974f9285900402d
+the response over at 2013-10-10 13:46:43
+
+the request begin at 2013-10-10 16:52:36
+the uniq id is 1381395156152 3f23a2647ae6b0ec0ec344348798add3
+visit: /:version/users/update_college_info(.:format)
+method:POST
+params:{"major_name":"计算机","token_id":"52566a4de974f9165300cd1d","college_name":"上海交通大","id":"523ec9dce974f9285900410d","degree":"","graduate_year":"2014","version":"v1","format":"json"}
+current user id is:523ec9aae974f9285900402d
+the response over at 2013-10-10 16:52:36
+
+
+the request begin at 2013-10-10 17:06:26
+the uniq id is 1381395986273 cef7d0b378cae02c9ce5d24a8689da6c
+visit: /:version/users/add_college_info(.:format)
+method:POST
+params:{"major_name":"ds","token_id":"52566dd9e974f9165300ef10","college_name":"ddsa","degree":"fd","graduate_year":"1990","version":"v1","format":"json"}
+current user id is:523ec9aae974f9285900402d
+the response over at 2013-10-10 17:06:26

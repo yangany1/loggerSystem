@@ -607,64 +607,16 @@ public class DatabaseHandler {
 	}
 
 	/**
-	 * 添加新词到资料库
+	 * 添加新词到资料的空值库
 	 * 
+	 * @param user_id
 	 * @param name
 	 * @param actionType
 	 * @return
 	 */
-	public static boolean addToProfileNewWord(String name, int actionType) {
-		Connection conn = null;
-		ResultSet result = null;
-		PreparedStatement stmt = null;
-		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			conn = DriverManager.getConnection(TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
-
-			String insert = "insert into newword(name,actiontype) values(?,?)";
-			stmt = conn.prepareStatement(insert);
-			stmt.setString(1, name);
-			stmt.setInt(2, actionType);
-			stmt.execute();
-			stmt.close();
-			conn.close();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-		} finally {
-			if (result != null) {
-				try {
-					result.close();
-				} catch (SQLException sqlEx) {
-				}
-				result = null;
-			}
-			if (stmt != null) {
-				try {
-					stmt.close();
-				} catch (SQLException sqlEx) {
-				}
-				stmt = null;
-			}
-		}
-		ConfigHandler.getLogger().info("addToProfileNewWord success=" + name);
-		return true;
-	}
-
-	/**
-	 * 添加新词到资料的新词库
-	 * 
-	 * @param user_id
-	 * @param tags
-	 * @param relevancies
-	 */
-	public static boolean addNewWordToProfileNull(String user_id, String name,
+	public static boolean addNewWordToProfile(String user_id, String name,
 			int actionType) {
-		System.out.println("write to profile null "+name);
+		System.out.println("write to profile new words " + name);
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
@@ -698,7 +650,102 @@ public class DatabaseHandler {
 		}
 		return true;
 	}
-	 public static void main(String[] args){
-		 addNewWordToProfileNull("523fbff9e974f941d7012762","name",1);
-	 }
+
+	/**
+	 * 获取某个资料对应的关键词
+	 * 
+	 * @param name
+	 * @param addTags
+	 * @return
+	 */
+	public static boolean getProfileKeywords(String name, List<String> addTags) {
+		ConfigHandler.getLogger().info("getProfileKeywords=" + name);
+		ResultSet result = null;
+		Statement stmt = null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
+			String sqlstmt = "SELECT * from profile_relations where from_field='"
+					+ name + "' and is_handled=1 order by links desc limit 10";
+			result = stmt.executeQuery(sqlstmt);
+			while (result.next()) {
+				addTags.add(result.getString("to_field"));
+			}
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 根据id返回标准词记录
+	 * @param id
+	 * @return
+	 */
+	public static String getStdWordById(int id){
+		ConfigHandler.getLogger().info("getStdWordById=" + id);
+		ResultSet result = null;
+		Statement stmt = null;
+		String std_word=null;
+		try {
+			Class.forName("com.mysql.jdbc.Driver");
+			Connection conn = DriverManager.getConnection(
+					TOOL_DEVELOP_DATABASE_PATH,
+					ConfigHandler.getMysqlUsername(),
+					ConfigHandler.getMysqlPassword());
+			stmt = conn.createStatement();
+			String sqlstmt = "SELECT * from profile_std_words where id="+id;
+			result = stmt.executeQuery(sqlstmt);
+			if (result.next()) {
+				std_word=result.getString("content");
+			}
+			conn.close();
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		} finally {
+			if (result != null) {
+				try {
+					result.close();
+				} catch (SQLException sqlEx) {
+				}
+				result = null;
+			}
+			if (stmt != null) {
+				try {
+					stmt.close();
+				} catch (SQLException sqlEx) {
+				}
+				stmt = null;
+			}
+		}
+		return std_word;
+	}
+	public static void main(String[] args) {
+	}
 }

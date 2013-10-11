@@ -225,36 +225,52 @@ public class RelevancyThread {
 	 */
 	public boolean updateProfileValue(RelevancyObject log, String name,
 			int actionType) {
-		//查询标准库
-		System.out.println("update profile =" + name + "  type is:"
-				+ actionType);
+		// 查询标准库
+		ConfigHandler.getLogger().info(
+				"update profile =" + name + "  type is:" + actionType);
 		int type = DatabaseHandler.searchFromProfileStandard(name, actionType);
 
-		//存在标准库，更新权值
+		// 存在标准库，更新权值
 		if (type == 1) {
-			System.out.println(name+" exist");
-//			DatabaseHandler.addToProfileNewWord(name, actionType);
+			ConfigHandler.getLogger().info(name + " exist in std words");
+			List<String> addTags = new ArrayList<String>();
+			DatabaseHandler.getProfileKeywords(name, addTags);
+			this.updateUserTagsRelevancy(log.getUserId(),addTags,20,0.1);
 		}
-		//不存在标准库，查看参考库
+		// 不存在标准库，查看参考库
 		else {
-			int r=DatabaseHandler.searchFromProfileRef(name,actionType);
-			//存在参考库，返回标准库词的id
-		    if(r!=-1){
-		    	System.out.println(name+" exist in ref table "+r);
-		    }
-		    //不存在参考库，查看空值库
-		    else{
-		    	r=DatabaseHandler.searchFromProfileNull(name, actionType);
-		    	//在空值库，忽略
-		    	if(r==1){
-		    		return true;
-		    	}
-		    	//不在空值库，加入新词库
-		    	else{
-		    		DatabaseHandler.addNewWordToProfileNull(log.getUserId(), name, actionType);
-		    	}
-		    }
-		    	
+			ConfigHandler.getLogger().info(
+					name + " not exist in std words search in ref words");
+			int r = DatabaseHandler.searchFromProfileRef(name, actionType);
+			// 存在参考库，返回标准库词的id
+			if (r != -1) {
+				ConfigHandler.getLogger().info(
+						name + " exist in ref words " + r);
+				String map_std_name=DatabaseHandler.getStdWordById(r);
+				List<String> addTags = new ArrayList<String>();
+				DatabaseHandler.getProfileKeywords(map_std_name, addTags);
+				this.updateUserTagsRelevancy(log.getUserId(),addTags,20,0.1);
+			}
+			// 不存在参考库，查看空值库
+			else {
+				ConfigHandler.getLogger()
+						.info(name + " not exist in ref words");
+				r = DatabaseHandler.searchFromProfileNull(name, actionType);
+				// 在空值库，忽略
+				if (r == 1) {
+					ConfigHandler.getLogger().info(
+							name + "  exist in null words");
+					return true;
+				}
+				// 不在空值库，加入新词库
+				else {
+					ConfigHandler.getLogger().info(
+							name + " not exist in null words");
+					DatabaseHandler.addNewWordToProfile(log.getUserId(), name,
+							actionType);
+				}
+			}
+
 		}
 
 		return true;
@@ -825,6 +841,70 @@ public class RelevancyThread {
 			int currentNum = userAnsweredTimesToday.get(userid).size();
 			userAnsweredTimesToday.get(userid).put(dialogid, currentNum + 1);
 		}
+		return true;
+	}
+
+	/**
+	 * 更新用户标签的权值
+	 * 
+	 * @param userid
+	 * @param addTags
+	 * @return
+	 */
+	private boolean updateUserTagsRelevancy(String userid,
+			List<String> addTags, double addValue, double beta) {
+		float s = (float) addValue;
+		ArrayList<String> toAddTags = new ArrayList<String>();
+		ArrayList<Float> toAddRelevancies = new ArrayList<Float>();
+		for (String word : addTags) {
+			try {
+				if (!this.expertTagRelevancy.containsKey(userid)) {
+					Map<String, Float> maps = new HashMap<String, Float>();
+					maps.put(word, (float) 0.0);
+					this.expertTagRelevancy.put(userid, maps);
+				}
+				if (!this.expertTagRelevancy.get(userid).containsKey(word)) {
+					this.expertTagRelevancy.get(userid).put(word, (float) 0.0);
+				}
+				float alpha = this.expertTagRelevancy.get(userid).get(word);
+				float added = (float) ((1 - alpha) * beta);
+				if (1 < beta) {
+					added = alpha;
+				}
+				float curr = alpha + added;
+				this.expertTagRelevancy.get(userid).put(word, curr);
+				if (toAddTags.contains(word)) {
+					toAddRelevancies.set(toAddTags.indexOf(word), curr);
+				} else {
+					toAddRelevancies.add(curr);
+					toAddTags.add(word);
+				}
+				ConfigHandler.getLogger().info("s=" + s);
+				s = s - added;
+				if (s <= 0) {
+					break;
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+				continue;
+			}
+
+		}
+		ConfigHandler.getLogger()
+				.info("to add tags number=" + toAddTags.size());
+		// ArrayList to array
+		String[] stag = new String[toAddTags.size()];
+		int i = 0;
+		for (String tag : toAddTags) {
+			stag[i++] = tag;
+		}
+		Float[] frele = new Float[toAddRelevancies.size()];
+		i = 0;
+		for (Float r : toAddRelevancies) {
+			frele[i++] = r;
+		}
+		DatabaseHandler.updateRelevancyToMysql(userid, stag,
+				ArrayUtils.toPrimitive(frele, 0.0f));
 		return true;
 	}
 }
