@@ -649,7 +649,7 @@ public class DatabaseHandler {
 			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
 			String sqlstmt = "SELECT * from profile_relations where from_field='"
-					+ name + "' and is_handled=1 order by links desc limit 10";
+					+ name + "' and is_handled=1 order by links desc limit 100";
 			result = stmt.executeQuery(sqlstmt);
 			while (result.next()) {
 				addTags.add(result.getString("to_field"));
