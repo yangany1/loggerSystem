@@ -332,9 +332,11 @@ public class RelevancyThread {
 				&& (Boolean) this.dialogInfos.get(content.getDialogID()).get(
 						Constants.DIALOG_ANSWER_EVALUATE)) {
 			// 更新提问者的消耗值
-			this.updateConsumation(content.getDialogID());
+			double consume_value=this.updateConsumation(content.getDialogID());
 			// 更新回答者的贡献值
-			this.updateContribution(content.getDialogID());
+			double contribute_value=this.updateContribution(content.getDialogID());
+			//记录该问题的贡献量和消耗量
+			DatabaseHandler.updateQuestionConsumeContri(content.getDialogID(),consume_value,contribute_value);
 			// 更新提问者的知识量
 			this.updateKnowledge(UserAction.EVALUATE, (String) this.dialogInfos
 					.get(content.getDialogID()).get(Constants.DIALOG_ASKER),
@@ -603,7 +605,7 @@ public class RelevancyThread {
 	/**
 	 * 更新回答者的贡献量
 	 */
-	private boolean updateContribution(String dialogid) {
+	private double updateContribution(String dialogid) {
 		double contributerValue = cal.getContribution(dialogid);
 		String answerid = (String) this.dialogInfos.get(dialogid).get(
 				Constants.DIALOG_ANSWER);
@@ -611,13 +613,13 @@ public class RelevancyThread {
 		ConfigHandler.getLogger().info(
 				"update contribution userid=" + answerid + ",value="
 						+ contributerValue);
-		return true;
+		return contributerValue;
 	}
 
 	/**
 	 * 更新提问者的消耗量
 	 */
-	private boolean updateConsumation(String dialogid) {
+	private double updateConsumation(String dialogid) {
 		double consumerValue = cal.getConsumation(dialogid);
 		String askid = (String) this.dialogInfos.get(dialogid).get(
 				Constants.DIALOG_ASKER);
@@ -625,7 +627,7 @@ public class RelevancyThread {
 		ConfigHandler.getLogger().info(
 				"update consumation userid=" + askid + ",value="
 						+ consumerValue);
-		return true;
+		return consumerValue;
 	}
 
 	private boolean updateKnowledge(UserAction action, String userid,

@@ -33,6 +33,39 @@ public class DatabaseHandler {
 
 	public static final String TOOL_DEVELOP_DATABASE_PATH = "jdbc:mysql://zhidao.ba/zhidaoba_tool_development?useUnicode=true&characterEncoding=utf8";
 
+	public static Connection tagconn = null;
+	public static Connection toolconn = null;
+
+	public static synchronized Connection getTagConnection() {
+		if (tagconn == null) {
+			try {
+				Class.forName("com.mysql.jdbc.Driver");
+				tagconn = DriverManager.getConnection(
+						ConfigHandler.getMysqlPath(),
+						ConfigHandler.getMysqlUsername(),
+						ConfigHandler.getMysqlPassword());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return tagconn;
+	}
+
+	public static synchronized Connection getToolConnection() {
+		if (toolconn == null) {
+			try {
+				Class.forName("com.mysql.jdbc.Driver");
+				toolconn = DriverManager.getConnection(
+						TOOL_DEVELOP_DATABASE_PATH,
+						ConfigHandler.getMysqlUsername(),
+						ConfigHandler.getMysqlPassword());
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return toolconn;
+	}
+
 	/**
 	 * 将日志数据写入mongo数据库
 	 * 
@@ -160,10 +193,7 @@ public class DatabaseHandler {
 		Statement stmt = null;
 		try {
 			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					ConfigHandler.getMysqlPath(),
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getTagConnection();
 			stmt = conn.createStatement();
 			result = stmt.executeQuery("SELECT * from "
 					+ Constants.TABLE_RELEVANCY_NAME);
@@ -177,8 +207,6 @@ public class DatabaseHandler {
 				}
 				expertTagRelevancy.get(user_id).put(tag, relevancy);
 			}
-
-			conn.close();
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
@@ -360,28 +388,19 @@ public class DatabaseHandler {
 		ResultSet result = null;
 		Statement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					ConfigHandler.getMysqlPath(),
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getTagConnection();
 			stmt = conn.createStatement();
-
 			String sqlstmt = "SELECT " + "`to`" + " from "
 					+ Constants.TABLE_RELATIONSHIPS_NAME + " where `from` = "
 					+ "\"" + from + "\" ORDER BY " + Constants.VALUE_FIELD
 					+ " DESC limit 100";
 			ConfigHandler.getLogger().info("sql=" + sqlstmt);
 			result = stmt.executeQuery(sqlstmt);
-
 			while (result != null && result.next()) {
 				words.add(result.getString(Constants.TO_FIELD));
 			}
 			ConfigHandler.getLogger().info("words size=" + words.size());
-			conn.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
@@ -412,14 +431,12 @@ public class DatabaseHandler {
 	 */
 	public static boolean updateRelevancyToMysql(String user_id, String[] tags,
 			float[] relevancies) {
-		System.out.println("update relevancy in mysql length=" + tags.length);
+		ConfigHandler.getLogger().info(
+				"update relevancy in mysql length=" + tags.length);
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			conn = DriverManager.getConnection(ConfigHandler.getMysqlPath(),
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			conn = getTagConnection();
 			for (int i = 0; i < tags.length; i++) {
 				String update = "insert into " + Constants.TABLE_RELEVANCY_NAME
 						+ " values (?,?,?) on duplicate key update relevancy=?";
@@ -435,7 +452,6 @@ public class DatabaseHandler {
 								+ " tags id=" + tags[i] + " rele="
 								+ relevancies[i]);
 			}
-			conn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -443,10 +459,6 @@ public class DatabaseHandler {
 				if (stmt != null) {
 					stmt.close();
 				}
-				if (conn != null) {
-					conn.close();
-				}
-
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -466,39 +478,33 @@ public class DatabaseHandler {
 		ResultSet result = null;
 		Statement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
-
 			String sqlstmt = "SELECT * from profile_std_words where content='"
 					+ name + "' and category=" + actionType;
 			ConfigHandler.getLogger().info("sql=" + sqlstmt);
 			result = stmt.executeQuery(sqlstmt);
 			if (result.next()) {
 				type = 1;
-
 			}
-			conn.close();
-
+			result.close();
+			stmt.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
 				try {
 					result.close();
-				} catch (SQLException sqlEx) {
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 				result = null;
 			}
 			if (stmt != null) {
 				try {
 					stmt.close();
-				} catch (SQLException sqlEx) {
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 				stmt = null;
 			}
@@ -517,13 +523,8 @@ public class DatabaseHandler {
 		ResultSet result = null;
 		Statement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
-
 			String sqlstmt = "SELECT * from profile_ref_words where content='"
 					+ name + "'";
 			ConfigHandler.getLogger().info("sql=" + sqlstmt);
@@ -531,11 +532,9 @@ public class DatabaseHandler {
 			if (result.next()) {
 				type = result.getInt("profile_std_word_id");
 			}
-			conn.close();
-
+			result.close();
+			stmt.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
@@ -567,13 +566,8 @@ public class DatabaseHandler {
 		ResultSet result = null;
 		Statement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
-
 			String sqlstmt = "SELECT * from profile_null_words where content='"
 					+ name + "'";
 			ConfigHandler.getLogger().info("sql=" + sqlstmt);
@@ -581,11 +575,9 @@ public class DatabaseHandler {
 			if (result.next()) {
 				type = 1;
 			}
-			conn.close();
-
+			result.close();
+			stmt.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
@@ -616,14 +608,11 @@ public class DatabaseHandler {
 	 */
 	public static boolean addNewWordToProfile(String user_id, String name,
 			int actionType) {
-		System.out.println("write to profile new words " + name);
+		ConfigHandler.getLogger().info("write to profile new words " + name);
 		Connection conn = null;
 		PreparedStatement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			conn = DriverManager.getConnection(TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			conn = getToolConnection();
 			String update = "insert into profile_new_words(content,category,user_id) values (?,?,?) ";
 			ConfigHandler.getLogger().info("update sentence=" + update);
 			stmt = conn.prepareStatement(update);
@@ -631,7 +620,6 @@ public class DatabaseHandler {
 			stmt.setInt(2, actionType);
 			stmt.setString(3, user_id);
 			boolean flag = stmt.execute();
-			conn.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -639,14 +627,9 @@ public class DatabaseHandler {
 				if (stmt != null) {
 					stmt.close();
 				}
-				if (conn != null) {
-					conn.close();
-				}
-
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
-
 		}
 		return true;
 	}
@@ -663,11 +646,7 @@ public class DatabaseHandler {
 		ResultSet result = null;
 		Statement stmt = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
 			String sqlstmt = "SELECT * from profile_relations where from_field='"
 					+ name + "' and is_handled=1 order by links desc limit 10";
@@ -675,11 +654,8 @@ public class DatabaseHandler {
 			while (result.next()) {
 				addTags.add(result.getString("to_field"));
 			}
-			conn.close();
-
+			result.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
@@ -702,31 +678,26 @@ public class DatabaseHandler {
 
 	/**
 	 * 根据id返回标准词记录
+	 * 
 	 * @param id
 	 * @return
 	 */
-	public static String getStdWordById(int id){
+	public static String getStdWordById(int id) {
 		ConfigHandler.getLogger().info("getStdWordById=" + id);
 		ResultSet result = null;
 		Statement stmt = null;
-		String std_word=null;
+		String std_word = null;
 		try {
-			Class.forName("com.mysql.jdbc.Driver");
-			Connection conn = DriverManager.getConnection(
-					TOOL_DEVELOP_DATABASE_PATH,
-					ConfigHandler.getMysqlUsername(),
-					ConfigHandler.getMysqlPassword());
+			Connection conn = getToolConnection();
 			stmt = conn.createStatement();
-			String sqlstmt = "SELECT * from profile_std_words where id="+id;
+			String sqlstmt = "SELECT * from profile_std_words where id=" + id;
 			result = stmt.executeQuery(sqlstmt);
 			if (result.next()) {
-				std_word=result.getString("content");
+				std_word = result.getString("content");
 			}
-			conn.close();
-
+			result.close();
+			stmt.close();
 		} catch (SQLException e) {
-			e.printStackTrace();
-		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (result != null) {
@@ -746,6 +717,38 @@ public class DatabaseHandler {
 		}
 		return std_word;
 	}
+
+	public static boolean updateQuestionConsumeContri(String questionid,
+			double consume_value, double contri_value) {
+		ConfigHandler.getLogger().info(
+				"update question:" + questionid + "consumevalue="
+						+ consume_value + ",contri_value=" + contri_value);
+		Connection conn = null;
+		PreparedStatement stmt = null;
+		try {
+			conn = getToolConnection();
+			String update = "insert into question_consumation_contribution(questionid,consumation,contribution) values (?,?,?) ";
+			stmt = conn.prepareStatement(update);
+			stmt.setString(1, questionid);
+			stmt.setDouble(2, consume_value);
+			stmt.setDouble(3, contri_value);
+			stmt.execute();
+			stmt.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (stmt != null) {
+					stmt.close();
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+		return true;
+	}
+
 	public static void main(String[] args) {
+		updateQuestionConsumeContri("123", 1.2, 3.4);
 	}
 }
